@@ -1,0 +1,36 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20260803234414
+Username: DESKTOP-GA8J1H5\anil
+RunAs User: DESKTOP-GA8J1H5\anil
+Configuration Name: 
+Machine: DESKTOP-GA8J1H5 (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe
+Process ID: 34072
+PSVersion: 5.1.26100.6899
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.6899
+BuildVersion: 10.0.26100.6899
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is .\stage1_3_fgt_docker.log
+PS C:\Users\anil\Desktop\unified\free-game-tracker> docker build --pull -t free-game-tracker:stage1.3 .
+
+PS C:\Users\anil\Desktop\unified\free-game-tracker> docker image inspect free-game-tracker:stage1.3
+
+PS C:\Users\anil\Desktop\unified\free-game-tracker> docker compose config
+
+PS C:\Users\anil\Desktop\unified\free-game-tracker> docker compose run --rm free-game-tracker version
+
+PS C:\Users\anil\Desktop\unified\free-game-tracker> docker compose run --rm free-game-tracker identity
+
+PS C:\Users\anil\Desktop\unified\free-game-tracker> docker compose run --rm free-game-tracker health
+
+PS C:\Users\anil\Desktop\unified\free-game-tracker> Stop-Transcript
+**********************
+Windows PowerShell transcript end
+End time: 20260803234445
+**********************

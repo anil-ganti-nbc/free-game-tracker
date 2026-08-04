@@ -1,0 +1,24 @@
+# Free Game Tracker Stage 1.2 — no public ports, no Docker socket, no Synology paths.
+services:
+  free-game-tracker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: free-game-tracker:stage1
+    container_name: free-game-tracker
+    restart: "no"
+    environment:
+      NEWSROOM_DATABASE_PATH: /app/data/newsroom.db
+      NEWSROOM_REPORTS_DIR: /app/data/reports
+      NEWSROOM_DISCORD_WEBHOOK_URL: ${NEWSROOM_DISCORD_WEBHOOK_URL:-}
+    volumes:
+      - fgt_data:/app/data
+    healthcheck:
+      test: ["CMD", "newsroom", "health"]
+      interval: 60s
+      timeout: 20s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  fgt_data:

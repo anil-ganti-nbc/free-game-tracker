@@ -1,0 +1,187 @@
+"""Tests for Discord notification building and posting (no real network)."""
+
+from __future__ import annotations
+
+import json
+from datetime import UTC, datetime
+from typing import Any
+
+import httpx
+
+from newsroom.compare import RunDiff
+from newsroom.models import (
+    Confidence,
+    NewRelease,
+    NewsEvent,
+    PromotionType,
+    Source,
+    SteamDeal,
+)
+from newsroom.notify import (
+    build_breakout_payload,
+    build_deal_payload,
+    build_discord_payload,
+    notify_new_giveaways,
+    post_discord,
+)
+
+WEBHOOK = "https://discord.com/api/webhooks/1/abc"
+
+
+def _event(title: str = "Sample Free Game", score: int = 100) -> NewsEvent:
+    return NewsEvent(
+        source=Source.EPIC,
+        title=title,
+        url="https://store.epicgames.com/en-US/p/x",
+        promotion_type=PromotionType.GIVEAWAY,
+        original_price=19.99,
+        current_price=0.0,
+        promotion_end=datetime(2026, 7, 25, tzinfo=UTC),
+        confidence=Confidence(score=score, reasons=["MSRP changed from paid to free"]),
+    )
+
+
+def test_payload_has_one_embed_per_game() -> None:
+    payload = build_discord_payload([_event()])
+    assert payload is not None
+    assert len(payload["embeds"]) == 1
+    embed = payload["embeds"][0]
+    assert embed["title"] == "Sample Free Game"
+    assert embed["url"] == "https://store.epicgames.com/en-US/p/x"
+    field_values = {f["name"]: f["value"] for f in embed["fields"]}
+    assert field_values["Store"] == "epic"
+    assert field_values["Price"] == "$19.99 → Free"
+    assert field_values["Confidence"] == "100"
+
+
+def test_no_payload_when_empty() -> None:
+    assert build_discord_payload([]) is None
+
+
+def test_min_confidence_filters_out_low_scores() -> None:
+    events = [_event("High", 100), _event("Low", 40)]
+    payload = build_discord_payload(events, min_confidence=70)
+    assert payload is not None
+    titles = {e["title"] for e in payload["embeds"]}
+    assert titles == {"High"}
+
+
+def test_more_than_ten_games_are_capped() -> None:
+    events = [_event(f"Game {i}") for i in range(13)]
+    payload = build_discord_payload(events)
+    assert payload is not None
+    assert len(payload["embeds"]) == 10
+    assert "Showing first 10" in payload["content"]
+
+
+def test_notify_skips_when_no_webhook() -> None:
+    """With no webhook, nothing is posted and no client is touched."""
+    calls: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(204)
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    result = notify_new_giveaways(RunDiff(new=[_event()]), webhook_url=None, client=client)
+    assert result is False
+    assert calls == []
+
+
+def test_notify_posts_new_giveaways() -> None:
+    seen: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(json.loads(request.content))
+        return httpx.Response(204)
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    result = notify_new_giveaways(
+        RunDiff(new=[_event()]), webhook_url=WEBHOOK, client=client
+    )
+    assert result is True
+    assert len(seen) == 1
+    assert seen[0]["embeds"][0]["title"] == "Sample Free Game"
+
+
+def test_breakout_payload_fields() -> None:
+    release = NewRelease(
+        appid=42,
+        name="Breakout Hit",
+        url="https://store.steampowered.com/app/42",
+        release_date=datetime(2026, 7, 15, tzinfo=UTC),
+        review_desc="Overwhelmingly Positive",
+        total_reviews=2000,
+        positive_pct=95.0,
+    )
+    payload = build_breakout_payload([release])
+    assert payload is not None
+    embed = payload["embeds"][0]
+    assert embed["title"] == "Breakout Hit"
+    fields = {f["name"]: f["value"] for f in embed["fields"]}
+    assert fields["Reviews"] == "Overwhelmingly Positive"
+    assert fields["Positive"] == "95%"
+
+
+def test_breakout_payload_none_when_empty() -> None:
+    assert build_breakout_payload([]) is None
+
+
+def test_deal_payload_fields() -> None:
+    deal = SteamDeal(
+        appid=5,
+        name="Great Deal",
+        url="https://store.steampowered.com/app/5",
+        discount_percent=40,
+        original_price=39.99,
+        final_price=23.99,
+        review_desc="Very Positive",
+        total_reviews=5000,
+        positive_pct=96.0,
+        discount_end=datetime(2026, 7, 25, tzinfo=UTC),
+    )
+    payload = build_deal_payload([deal])
+    assert payload is not None
+    embed = payload["embeds"][0]
+    assert embed["title"] == "Great Deal"
+    fields = {f["name"]: f["value"] for f in embed["fields"]}
+    assert fields["Discount"] == "-40%"
+    assert fields["Price"] == "$39.99 → $23.99"
+    assert fields["Reviews"] == "Very Positive"
+
+
+def test_deal_payload_none_when_empty() -> None:
+    assert build_deal_payload([]) is None
+
+
+def test_post_is_fault_isolated_on_error() -> None:
+    """A failing webhook must return False, not raise."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(500)
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    assert post_discord(WEBHOOK, {"content": "x"}, client=client) is False
+
+
+def test_post_retries_after_rate_limit() -> None:
+    """A 429 is retried (honouring Retry-After) and then succeeds."""
+    statuses = [429, 204]
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        code = statuses.pop(0)
+        if code == 429:
+            return httpx.Response(429, headers={"Retry-After": "0"})
+        return httpx.Response(code)
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    assert post_discord(WEBHOOK, {"content": "x"}, client=client) is True
+    assert statuses == []  # both responses consumed
+
+
+def test_post_gives_up_after_persistent_rate_limit() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(429, headers={"Retry-After": "0"})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    assert post_discord(WEBHOOK, {"content": "x"}, client=client) is False
