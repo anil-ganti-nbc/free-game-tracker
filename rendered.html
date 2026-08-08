@@ -1,0 +1,567 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Newsroom — Free Games</title>
+<style>
+  :root { --bg:#0f1220; --card:#1a1e33; --line:#2b3050; --text:#e8eaf5; --muted:#9aa2c0;
+          --accent:#6ea8fe; --good:#2ecc71; --warn:#f1c40f; --bad:#e74c3c; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#0f1220; color:#e8eaf5;
+         font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  header { display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+           padding:18px 24px; border-bottom:1px solid var(--line); }
+  h1 { font-size:18px; margin:0; letter-spacing:.3px; }
+  .muted { color:var(--muted); }
+  .spacer { flex:1; }
+  button { background:var(--accent); color:#08122b; border:0; border-radius:8px;
+           padding:9px 16px; font-weight:600; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:default; }
+  main { padding:24px; max-width:1100px; margin:0 auto; }
+  .cards { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:14px 18px; min-width:120px; }
+  .card .n { font-size:26px; font-weight:700; }
+  .card .l { color:var(--muted); font-size:13px; }
+  section { margin:22px 0; }
+  h2 { font-size:15px; text-transform:uppercase; letter-spacing:.6px;
+       color:var(--muted); border-bottom:1px solid var(--line); padding-bottom:6px; }
+  table { width:100%; border-collapse:collapse; }
+  th,td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line);
+          vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:13px; }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  .pill { display:inline-block; padding:1px 8px; border-radius:999px; font-size:12px;
+          font-weight:600; }
+  .ok { background:rgba(46,204,113,.15); color:var(--good); }
+  .stale, .err { background:rgba(231,76,60,.15); color:var(--bad); }
+  .msg { font-size:13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>📰 Newsroom <span class="muted">— free game watch</span></h1>
+  <div class="spacer"></div>
+  <span id="gen" class="muted">last run: 05/08/2026, 16:51:25</span>
+  <button id="run" onclick="runNow()">Run now</button>
+</header>
+<main>
+  <div class="cards" id="cards"><div class="card"><div class="n">64</div><div class="l">Giveaways</div></div><div class="card"><div class="n">8</div><div class="l">Deals</div></div><div class="card"><div class="n">2</div><div class="l">Breakouts</div></div><div class="card"><div class="n">9</div><div class="l">Sources</div></div><div class="card"><div class="n">3</div><div class="l">Upcoming</div></div><div class="card"><div class="n">0</div><div class="l">Stale sources</div></div></div>
+  <div id="msg" class="msg muted"></div>
+  <section><h2>Current free giveaways</h2><div id="giveaways"><table>
+    <tbody><tr><th>Store</th><th>Game</th><th>MSRP</th><th>Ends</th><th>Conf.</th></tr><tr>
+      <td>xbox_game_pass</td>
+      <td><a href="https://news.xbox.com/en-us/2026/08/04/xbox-game-pass-august-2026-wave-1/" target="_blank" rel="noopener">Egging On</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>90</td></tr><tr>
+      <td>xbox_game_pass</td>
+      <td><a href="https://news.xbox.com/en-us/2026/08/04/xbox-game-pass-august-2026-wave-1/" target="_blank" rel="noopener">Cricket 26</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>90</td></tr><tr>
+      <td>xbox_game_pass</td>
+      <td><a href="https://news.xbox.com/en-us/2026/08/04/xbox-game-pass-august-2026-wave-1/" target="_blank" rel="noopener">Mio: Memories in Orbit</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>90</td></tr><tr>
+      <td>xbox_game_pass</td>
+      <td><a href="https://news.xbox.com/en-us/2026/08/04/xbox-game-pass-august-2026-wave-1/" target="_blank" rel="noopener">Sandustry</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>90</td></tr><tr>
+      <td>xbox_game_pass</td>
+      <td><a href="https://news.xbox.com/en-us/2026/08/04/xbox-game-pass-august-2026-wave-1/" target="_blank" rel="noopener">Ball x Pit</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>90</td></tr><tr>
+      <td>xbox_game_pass</td>
+      <td><a href="https://news.xbox.com/en-us/2026/08/04/xbox-game-pass-august-2026-wave-1/" target="_blank" rel="noopener">Bounty Star</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>90</td></tr><tr>
+      <td>xbox_game_pass</td>
+      <td><a href="https://news.xbox.com/en-us/2026/08/04/xbox-game-pass-august-2026-wave-1/" target="_blank" rel="noopener">Date Everything!</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>90</td></tr><tr>
+      <td>xbox_game_pass</td>
+      <td><a href="https://news.xbox.com/en-us/2026/08/04/xbox-game-pass-august-2026-wave-1/" target="_blank" rel="noopener">Grounded 2</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>90</td></tr><tr>
+      <td>xbox_game_pass</td>
+      <td><a href="https://news.xbox.com/en-us/2026/08/04/xbox-game-pass-august-2026-wave-1/" target="_blank" rel="noopener">Monsters are Coming!</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>90</td></tr><tr>
+      <td>xbox_game_pass</td>
+      <td><a href="https://news.xbox.com/en-us/2026/08/04/xbox-game-pass-august-2026-wave-1/" target="_blank" rel="noopener">PowerWash Simulator 2</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>90</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/07/28/playstation-plus-monthly-games-for-august-dying-light-2-stay-human-reloaded-edition-big-walk-signalis/" target="_blank" rel="noopener">Big Walk</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/07/28/playstation-plus-monthly-games-for-august-dying-light-2-stay-human-reloaded-edition-big-walk-signalis/" target="_blank" rel="noopener">Dying Light 2 Stay Human: Reloaded Edition</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/07/28/playstation-plus-monthly-games-for-august-dying-light-2-stay-human-reloaded-edition-big-walk-signalis/" target="_blank" rel="noopener">Signalis</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>xbox_game_pass</td>
+      <td><a href="https://news.xbox.com/en-us/2026/08/04/xbox-game-pass-august-2026-wave-1/" target="_blank" rel="noopener">Beast of Reincarnation</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>90</td></tr><tr>
+      <td>xbox_game_pass</td>
+      <td><a href="https://news.xbox.com/en-us/2026/08/04/xbox-game-pass-august-2026-wave-1/" target="_blank" rel="noopener">Heretic + Hexen</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>90</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/07/15/playstation-plus-game-catalog-for-july-avatar-frontiers-of-pandora-rise-of-the-ronin-firefighting-simulator-ignite-and-more/" target="_blank" rel="noopener">Citizen Sleeper 2: Starward Vector</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/07/15/playstation-plus-game-catalog-for-july-avatar-frontiers-of-pandora-rise-of-the-ronin-firefighting-simulator-ignite-and-more/" target="_blank" rel="noopener">Dying Light</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/07/15/playstation-plus-game-catalog-for-july-avatar-frontiers-of-pandora-rise-of-the-ronin-firefighting-simulator-ignite-and-more/" target="_blank" rel="noopener">Snow Bros. Wonderland</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/07/15/playstation-plus-game-catalog-for-july-avatar-frontiers-of-pandora-rise-of-the-ronin-firefighting-simulator-ignite-and-more/" target="_blank" rel="noopener">Avatar: Frontiers of Pandora</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/07/15/playstation-plus-game-catalog-for-july-avatar-frontiers-of-pandora-rise-of-the-ronin-firefighting-simulator-ignite-and-more/" target="_blank" rel="noopener">Indigo Prophecy</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/07/15/playstation-plus-game-catalog-for-july-avatar-frontiers-of-pandora-rise-of-the-ronin-firefighting-simulator-ignite-and-more/" target="_blank" rel="noopener">Mighty Morphin Power Rangers: Rita’s Rewind</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/07/15/playstation-plus-game-catalog-for-july-avatar-frontiers-of-pandora-rise-of-the-ronin-firefighting-simulator-ignite-and-more/" target="_blank" rel="noopener">Psi-Ops: The Mindgate Conspiracy</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/07/15/playstation-plus-game-catalog-for-july-avatar-frontiers-of-pandora-rise-of-the-ronin-firefighting-simulator-ignite-and-more/" target="_blank" rel="noopener">Rise of the Ronin</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/07/15/playstation-plus-game-catalog-for-july-avatar-frontiers-of-pandora-rise-of-the-ronin-firefighting-simulator-ignite-and-more/" target="_blank" rel="noopener">Firefighting Simulator: Ignite</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/07/01/playstation-plus-monthly-games-for-july-call-of-duty-modern-warfare-iii-for-the-king-ii-crosscode/" target="_blank" rel="noopener">Call of Duty: Modern Warfare III – Cross-Gen Bundle</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/07/01/playstation-plus-monthly-games-for-july-call-of-duty-modern-warfare-iii-for-the-king-ii-crosscode/" target="_blank" rel="noopener">CrossCode</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/07/01/playstation-plus-monthly-games-for-july-call-of-duty-modern-warfare-iii-for-the-king-ii-crosscode/" target="_blank" rel="noopener">For the King II</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/06/10/playstation-plus-game-catalog-for-june-final-fantasy-xvi-sonic-x-shadow-generations-kingdom-come-deliverance-and-more/" target="_blank" rel="noopener">Black Desert</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/06/10/playstation-plus-game-catalog-for-june-final-fantasy-xvi-sonic-x-shadow-generations-kingdom-come-deliverance-and-more/" target="_blank" rel="noopener">Blades of Fire</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/06/10/playstation-plus-game-catalog-for-june-final-fantasy-xvi-sonic-x-shadow-generations-kingdom-come-deliverance-and-more/" target="_blank" rel="noopener">Farming Simulator 25</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/06/10/playstation-plus-game-catalog-for-june-final-fantasy-xvi-sonic-x-shadow-generations-kingdom-come-deliverance-and-more/" target="_blank" rel="noopener">Life is Strange: Double Exposure</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/06/10/playstation-plus-game-catalog-for-june-final-fantasy-xvi-sonic-x-shadow-generations-kingdom-come-deliverance-and-more/" target="_blank" rel="noopener">Final Fantasy XVI</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/06/10/playstation-plus-game-catalog-for-june-final-fantasy-xvi-sonic-x-shadow-generations-kingdom-come-deliverance-and-more/" target="_blank" rel="noopener">Gitaroo Man</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/06/10/playstation-plus-game-catalog-for-june-final-fantasy-xvi-sonic-x-shadow-generations-kingdom-come-deliverance-and-more/" target="_blank" rel="noopener">Sonic X Shadow Generations</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/06/10/playstation-plus-game-catalog-for-june-final-fantasy-xvi-sonic-x-shadow-generations-kingdom-come-deliverance-and-more/" target="_blank" rel="noopener">Kingdom Come: Deliverance</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/05/26/playstation-plus-monthly-games-for-june-grounded-fully-yoked-edition-nickelodeon-all-star-brawl-2-warhammer-40000-darktide/" target="_blank" rel="noopener">EA Sports FC 26</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/05/26/playstation-plus-monthly-games-for-june-grounded-fully-yoked-edition-nickelodeon-all-star-brawl-2-warhammer-40000-darktide/" target="_blank" rel="noopener">Grounded Fully Yoked Edition</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/05/26/playstation-plus-monthly-games-for-june-grounded-fully-yoked-edition-nickelodeon-all-star-brawl-2-warhammer-40000-darktide/" target="_blank" rel="noopener">Nickelodeon All-Star Brawl 2</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/05/26/playstation-plus-monthly-games-for-june-grounded-fully-yoked-edition-nickelodeon-all-star-brawl-2-warhammer-40000-darktide/" target="_blank" rel="noopener">Warhammer 40,000: Darktide</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/05/13/playstation-plus-game-catalog-for-may-star-wars-outlaws-red-dead-redemption-2-bramble-the-mountain-king-the-thaumaturge-and-more/" target="_blank" rel="noopener">Bramble: The Mountain King</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/05/13/playstation-plus-game-catalog-for-may-star-wars-outlaws-red-dead-redemption-2-bramble-the-mountain-king-the-thaumaturge-and-more/" target="_blank" rel="noopener">Broken Sword – Shadows of the Templar: Reforged</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/05/13/playstation-plus-game-catalog-for-may-star-wars-outlaws-red-dead-redemption-2-bramble-the-mountain-king-the-thaumaturge-and-more/" target="_blank" rel="noopener">Enotria: The Last Song Standard Edition</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/05/13/playstation-plus-game-catalog-for-may-star-wars-outlaws-red-dead-redemption-2-bramble-the-mountain-king-the-thaumaturge-and-more/" target="_blank" rel="noopener">Flintlock: The Siege of Dawn</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/05/13/playstation-plus-game-catalog-for-may-star-wars-outlaws-red-dead-redemption-2-bramble-the-mountain-king-the-thaumaturge-and-more/" target="_blank" rel="noopener">Red Dead Redemption 2*</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/05/13/playstation-plus-game-catalog-for-may-star-wars-outlaws-red-dead-redemption-2-bramble-the-mountain-king-the-thaumaturge-and-more/" target="_blank" rel="noopener">Star Wars Outlaws</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/05/13/playstation-plus-game-catalog-for-may-star-wars-outlaws-red-dead-redemption-2-bramble-the-mountain-king-the-thaumaturge-and-more/" target="_blank" rel="noopener">The Thaumaturge</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><a href="https://blog.playstation.com/2026/05/13/playstation-plus-game-catalog-for-may-star-wars-outlaws-red-dead-redemption-2-bramble-the-mountain-king-the-thaumaturge-and-more/" target="_blank" rel="noopener">Time Crisis</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>95</td></tr><tr>
+      <td>epic</td>
+      <td><a href="https://store.epicgames.com/en-US/p/otxo-396b8b" target="_blank" rel="noopener">OTXO</a></td>
+      <td>$14.99 → Free</td>
+      <td>2026-08-06</td>
+      <td>100</td></tr><tr>
+      <td>epic</td>
+      <td><a href="https://store.epicgames.com/en-US/p/sol-cesto-e9b803" target="_blank" rel="noopener">Sol Cesto</a></td>
+      <td>$13.99 → Free</td>
+      <td>2026-08-06</td>
+      <td>100</td></tr><tr>
+      <td>gamerpower</td>
+      <td><a href="https://www.gamerpower.com/open/bad-cat-sam-pc-giveaway" target="_blank" rel="noopener">Bad cat Sam (IndieGala) Giveaway</a></td>
+      <td>$2.99 → Free</td>
+      <td>—</td>
+      <td>70</td></tr><tr>
+      <td>gamerpower</td>
+      <td><a href="https://www.gamerpower.com/open/blacklist-mafia-pc-giveaway" target="_blank" rel="noopener">Blacklist Mafia (IndieGala) Giveaway</a></td>
+      <td>$9.99 → Free</td>
+      <td>—</td>
+      <td>70</td></tr><tr>
+      <td>gamerpower</td>
+      <td><a href="https://www.gamerpower.com/open/boots-quest-dx-itch-io-giveaway" target="_blank" rel="noopener">Boots Quest DX (itch.io) Giveaway</a></td>
+      <td>$9.99 → Free</td>
+      <td>2026-08-11</td>
+      <td>90</td></tr><tr>
+      <td>gamerpower</td>
+      <td><a href="https://www.gamerpower.com/open/dire-echo-itchio-giveaway" target="_blank" rel="noopener">Dire Echo (itchio) Giveaway</a></td>
+      <td>$5.99 → Free</td>
+      <td>2026-08-09</td>
+      <td>90</td></tr><tr>
+      <td>gamerpower</td>
+      <td><a href="https://www.gamerpower.com/open/dora-diginoid-metroidvania-sci-fi-adventure-game" target="_blank" rel="noopener">Dora Diginoid: Metroidvania sci-fi adventure game</a></td>
+      <td>$6.00 → Free</td>
+      <td>—</td>
+      <td>70</td></tr><tr>
+      <td>gamerpower</td>
+      <td><a href="https://www.gamerpower.com/open/dual-chroma-academy-carols-itch-io-giveaway" target="_blank" rel="noopener">Dual Chroma: Academy Carols (itch.io) Giveaway</a></td>
+      <td>$2.00 → Free</td>
+      <td>—</td>
+      <td>70</td></tr><tr>
+      <td>gamerpower</td>
+      <td><a href="https://www.gamerpower.com/open/gigabash-pc-giveaway" target="_blank" rel="noopener">GigaBash (Stove) Giveaway</a></td>
+      <td>$24.99 → Free</td>
+      <td>—</td>
+      <td>70</td></tr><tr>
+      <td>gamerpower</td>
+      <td><a href="https://www.gamerpower.com/open/nightbell-itch-io-giveaway" target="_blank" rel="noopener">NIGHTBELL (Itch.io) Giveaway</a></td>
+      <td>$3.99 → Free</td>
+      <td>2026-08-09</td>
+      <td>90</td></tr><tr>
+      <td>gamerpower</td>
+      <td><a href="https://www.gamerpower.com/open/very-realistic-game-dev-simulator-itch-io-giveaway" target="_blank" rel="noopener">Very Realistic Game Dev Simulator (Itch.io) Giveaway</a></td>
+      <td>$1.99 → Free</td>
+      <td>2026-08-22</td>
+      <td>90</td></tr><tr>
+      <td>gamerpower</td>
+      <td><a href="https://www.gamerpower.com/open/whiskey-mafia-frank-s-story" target="_blank" rel="noopener">Whiskey Mafia: Frank's Story (IndieGala) Giveaway</a></td>
+      <td>$5.99 → Free</td>
+      <td>—</td>
+      <td>70</td></tr><tr>
+      <td>gamerpower</td>
+      <td><a href="https://www.gamerpower.com/open/whiskey-mafia-leo-s-family-pc-giveaway" target="_blank" rel="noopener">Whiskey.Mafia. Leo's Family (IndieGala) Giveaway</a></td>
+      <td>$5.99 → Free</td>
+      <td>—</td>
+      <td>70</td></tr><tr>
+      <td>xbox_game_pass</td>
+      <td><a href="https://news.xbox.com/en-us/2026/08/04/xbox-game-pass-august-2026-wave-1/" target="_blank" rel="noopener">Aliens: Firesteam Elite</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>90</td></tr><tr>
+      <td>xbox_game_pass</td>
+      <td><a href="https://news.xbox.com/en-us/2026/08/04/xbox-game-pass-august-2026-wave-1/" target="_blank" rel="noopener">Atlas Fallen</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>90</td></tr><tr>
+      <td>xbox_game_pass</td>
+      <td><a href="https://news.xbox.com/en-us/2026/08/04/xbox-game-pass-august-2026-wave-1/" target="_blank" rel="noopener">Firewatch</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>90</td></tr><tr>
+      <td>xbox_game_pass</td>
+      <td><a href="https://news.xbox.com/en-us/2026/08/04/xbox-game-pass-august-2026-wave-1/" target="_blank" rel="noopener">Menace</a></td>
+      <td>— → Free</td>
+      <td>—</td>
+      <td>90</td></tr></tbody></table></div></section>
+  <section><h2>Subscription Catalog &amp; Claims</h2><div id="subscriptions"></div></section>
+  <section>
+    <h2>Breakout new releases
+      <span style="text-transform:none;letter-spacing:0;float:right;font-weight:400">
+        within <span id="dayval">14</span> days
+        <input id="days" type="range" min="1" max="14" value="14" oninput="renderBreakouts()">
+      </span>
+    </h2>
+    <div id="breakouts"><table>
+    <tbody><tr><th>Game</th><th>Reviews</th><th>Count</th><th>Positive</th><th>Released</th><th>Age</th></tr><tr>
+      <td><a href="https://store.steampowered.com/app/4777900" target="_blank" rel="noopener">樹世界：雲端庇護所</a></td>
+      <td>Very Positive</td>
+      <td>56</td>
+      <td>85.7%</td>
+      <td>2026-08-05</td>
+      <td>0d</td></tr><tr>
+      <td><a href="https://store.steampowered.com/app/3659090" target="_blank" rel="noopener">Jelly Bubble</a></td>
+      <td>Very Positive</td>
+      <td>74</td>
+      <td>100%</td>
+      <td>2026-08-04</td>
+      <td>1d</td></tr></tbody></table></div>
+  </section>
+  <section><h2>Steam deals (well-reviewed)</h2><div id="deals"><table>
+    <tbody><tr><th>Game</th><th>Off</th><th>Price</th><th>Reviews</th><th>Count</th><th>Ends</th></tr><tr>
+      <td><a href="https://store.steampowered.com/app/1091500" target="_blank" rel="noopener">Cyberpunk 2077</a></td>
+      <td>-70%</td>
+      <td>$17.99 <span class="muted">($59.99)</span></td>
+      <td>Very Positive</td>
+      <td>967,106</td>
+      <td>2026-08-10</td></tr><tr>
+      <td><a href="https://store.steampowered.com/app/1817070" target="_blank" rel="noopener">Marvel’s Spider-Man Remastered</a></td>
+      <td>-60%</td>
+      <td>$23.99 <span class="muted">($59.99)</span></td>
+      <td>Overwhelmingly Positive</td>
+      <td>137,477</td>
+      <td>2026-08-06</td></tr><tr>
+      <td><a href="https://store.steampowered.com/app/1817190" target="_blank" rel="noopener">Marvel’s Spider-Man: Miles Morales</a></td>
+      <td>-60%</td>
+      <td>$19.99 <span class="muted">($49.99)</span></td>
+      <td>Very Positive</td>
+      <td>54,605</td>
+      <td>2026-08-06</td></tr><tr>
+      <td><a href="https://store.steampowered.com/app/1144200" target="_blank" rel="noopener">Ready or Not</a></td>
+      <td>-50%</td>
+      <td>$24.99 <span class="muted">($49.99)</span></td>
+      <td>Mostly Positive</td>
+      <td>340,628</td>
+      <td>2026-08-09</td></tr><tr>
+      <td><a href="https://store.steampowered.com/app/3527290" target="_blank" rel="noopener">PEAK</a></td>
+      <td>-50%</td>
+      <td>$3.99 <span class="muted">($7.99)</span></td>
+      <td>Very Positive</td>
+      <td>341,772</td>
+      <td>2026-08-18</td></tr><tr>
+      <td><a href="https://store.steampowered.com/app/2138330" target="_blank" rel="noopener">Cyberpunk 2077: Phantom Liberty</a></td>
+      <td>-40%</td>
+      <td>$17.99 <span class="muted">($29.99)</span></td>
+      <td>Very Positive</td>
+      <td>23,572</td>
+      <td>2026-08-10</td></tr><tr>
+      <td><a href="https://store.steampowered.com/app/2651280" target="_blank" rel="noopener">Marvel's Spider-Man 2</a></td>
+      <td>-33%</td>
+      <td>$40.19 <span class="muted">($59.99)</span></td>
+      <td>Very Positive</td>
+      <td>42,429</td>
+      <td>2026-08-06</td></tr><tr>
+      <td><a href="https://store.steampowered.com/app/1086940" target="_blank" rel="noopener">Baldur's Gate 3</a></td>
+      <td>-30%</td>
+      <td>$41.99 <span class="muted">($59.99)</span></td>
+      <td>Overwhelmingly Positive</td>
+      <td>851,057</td>
+      <td>2026-08-06</td></tr></tbody></table></div></section>
+  <section id="upcoming-wrap"><h2>Upcoming (heads-up)</h2><div id="upcoming"><div>• <a href="https://store.epicgames.com/en-US/p/beacon-pines-629fc3" target="_blank" rel="noopener">Beacon Pines</a> — free from 2026-08-06</div><div>• <a href="https://store.epicgames.com/en-US/p/caravan-sandwitch-05ff58" target="_blank" rel="noopener">Caravan SandWitch</a> — free from 2026-08-13</div><div>• <a href="https://store.epicgames.com/en-US/p/we-were-here-together-6a6d66" target="_blank" rel="noopener">We Were Here Together</a> — free from 2026-08-06</div></div></section>
+  <section><h2>Source health</h2><div id="health"><table>
+    <tbody><tr><th>Source</th><th>Status</th><th>Last success</th><th>Games</th></tr><tr>
+      <td>epic</td>
+      <td><span class="pill ok">ok</span></td>
+      <td>05/08/2026, 16:51:26</td>
+      <td>2</td></tr><tr>
+      <td>gamerpower</td>
+      <td><span class="pill ok">ok</span></td>
+      <td>05/08/2026, 16:51:28</td>
+      <td>11</td></tr><tr>
+      <td>geforce_now</td>
+      <td><span class="pill ok">ok</span></td>
+      <td>05/08/2026, 16:51:31</td>
+      <td>0</td></tr><tr>
+      <td>gog</td>
+      <td><span class="pill ok">ok</span></td>
+      <td>05/08/2026, 16:51:28</td>
+      <td>0</td></tr><tr>
+      <td>playstation_plus</td>
+      <td><span class="pill ok">ok</span></td>
+      <td>05/08/2026, 16:51:30</td>
+      <td>35</td></tr><tr>
+      <td>steam</td>
+      <td><span class="pill ok">ok</span></td>
+      <td>05/08/2026, 16:51:26</td>
+      <td>0</td></tr><tr>
+      <td>steam_breakouts</td>
+      <td><span class="pill ok">ok</span></td>
+      <td>05/08/2026, 16:51:52</td>
+      <td>2</td></tr><tr>
+      <td>steam_deals</td>
+      <td><span class="pill ok">ok</span></td>
+      <td>05/08/2026, 16:51:55</td>
+      <td>8</td></tr><tr>
+      <td>xbox_game_pass</td>
+      <td><span class="pill ok">ok</span></td>
+      <td>05/08/2026, 16:51:31</td>
+      <td>16</td></tr></tbody></table></div></section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let STATE = {breakouts: []};
+function money(v){ return (v===null||v===undefined) ? "—" : ("$"+Number(v).toFixed(2)); }
+function esc(s){ const d=document.createElement("div"); d.textContent=s??""; return d.innerHTML; }
+
+function renderBreakouts(){
+  const days = Number($("days").value); $("dayval").textContent = days;
+  const rows = STATE.breakouts.filter(b => b.days_since <= days);
+  $("breakouts").innerHTML = rows.length ? `<table>
+    <tr><th>Game</th><th>Reviews</th><th>Count</th><th>Positive</th><th>Released</th><th>Age</th></tr>` +
+    rows.map(b => `<tr>
+      <td><a href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.name)}</a></td>
+      <td>${esc(b.review_desc)}</td>
+      <td>${b.total_reviews.toLocaleString()}</td>
+      <td>${b.positive_pct}%</td>
+      <td>${esc(b.release_date)}</td>
+      <td>${b.days_since}d</td></tr>`).join("") + `</table>`
+    : `<p class="muted">No breakout releases within ${days} days.</p>`;
+}
+
+async function load(){
+  const r = await fetch("/api/state"); const s = await r.json(); STATE = s;
+  $("gen").textContent = s.generated_at ? ("last run: "+new Date(s.generated_at).toLocaleString()) : "no runs yet";
+  const c = s.counts;
+  $("cards").innerHTML = [
+    ["Giveaways", c.giveaways], ["Deals", c.deals], ["Breakouts", c.breakouts],
+    ["Sources", c.sources], ["Upcoming", c.upcoming], ["Stale sources", c.stale]
+  ].map(([l,n]) => `<div class="card"><div class="n">${n}</div><div class="l">${l}</div></div>`).join("");
+
+  $("giveaways").innerHTML = s.giveaways.length ? `<table>
+    <tr><th>Store</th><th>Game</th><th>MSRP</th><th>Ends</th><th>Conf.</th></tr>` +
+    s.giveaways.map(g => `<tr>
+      <td>${esc(g.source)}</td>
+      <td><a href="${esc(g.url)}" target="_blank" rel="noopener">${esc(g.title)}</a></td>
+      <td>${money(g.original_price)} → Free</td>
+      <td>${g.promotion_end ? esc(g.promotion_end.slice(0,10)) : "—"}</td>
+      <td>${g.confidence}</td></tr>`).join("") + `</table>`
+    : `<p class="muted">None right now.</p>`;
+
+  renderBreakouts();
+
+  $("deals").innerHTML = s.deals.length ? `<table>
+    <tr><th>Game</th><th>Off</th><th>Price</th><th>Reviews</th><th>Count</th><th>Ends</th></tr>` +
+    s.deals.map(d => `<tr>
+      <td><a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.name)}</a></td>
+      <td>-${d.discount_percent}%</td>
+      <td>${d.original_price!=null && d.final_price!=null ? "$"+d.final_price.toFixed(2)+" <span class='muted'>("+money(d.original_price)+")</span>" : "—"}</td>
+      <td>${esc(d.review_desc)}</td>
+      <td>${d.total_reviews.toLocaleString()}</td>
+      <td>${d.discount_end ? esc(d.discount_end) : "—"}</td></tr>`).join("") + `</table>`
+    : `<p class="muted">No qualifying deals right now.</p>`;
+
+  $("upcoming-wrap").style.display = s.upcoming.length ? "" : "none";
+  $("upcoming").innerHTML = s.upcoming.map(u => `<div>• <a href="${esc(u.url)}" target="_blank" rel="noopener">${esc(u.title)}</a>${u.starts ? " — free from "+esc(u.starts.slice(0,10)) : ""}</div>`).join("");
+
+  $("health").innerHTML = `<table>
+    <tr><th>Source</th><th>Status</th><th>Last success</th><th>Games</th></tr>` +
+    s.health.map(h => `<tr>
+      <td>${esc(h.source)}</td>
+      <td><span class="pill ${h.stale ? "stale" : (h.status==="ok" ? "ok":"err")}">${h.stale?"stale":esc(h.status)}</span></td>
+      <td>${h.last_success_at ? new Date(h.last_success_at).toLocaleString() : "never"}</td>
+      <td>${h.count}</td></tr>`).join("") + `</table>`;
+}
+
+async function runNow(){
+  const b = $("run"); b.disabled = true; $("msg").textContent = "Running…";
+  try {
+    const r = await fetch("/api/run", {method:"POST"});
+    const d = await r.json();
+    if (d.ok){ const x=d.summary; $("msg").textContent = `Done: ${x.new} new, ${x.ending_soon} ending soon, ${x.expired} gone.`; }
+    else { $("msg").textContent = d.error || "Run failed."; }
+  } catch(e){ $("msg").textContent = "Run failed: "+e; }
+  b.disabled = false; load();
+}
+
+load();
+setInterval(load, 30000);
+</script>
+
+
+</body></html>

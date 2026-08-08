@@ -1,0 +1,72 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "newsroom"
+version = "0.1.0"
+description = "Internal newsroom sensor that detects newly free PC games. Facts and evidence only, no article writing."
+requires-python = ">=3.12"
+readme = "README.md"
+license = { text = "Proprietary" }
+
+# Version 0.1 runtime stack. Only what the app actually uses.
+dependencies = [
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "sqlalchemy>=2.0",
+    "typer>=0.12",
+    "rich>=13.7",
+    "httpx>=0.27",
+    "beautifulsoup4>=4.12",
+    "python-dotenv>=1.0",
+    "alembic>=1.19.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "fastapi>=0.110",
+    "pyinstaller>=6.10",
+]
+# The local dashboard (newsroom serve). Optional so the core stays lean.
+gui = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+]
+
+[project.scripts]
+newsroom = "newsroom.main:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["newsroom"]
+
+# ---------------------------------------------------------------------------
+# Tooling
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.flake8-bugbear]
+# Typer uses call expressions (Option/Argument) as parameter defaults by design.
+extend-immutable-calls = ["typer.Option", "typer.Argument"]
+
+[tool.ruff.lint.per-file-ignores]
+# webapp.py embeds a self-contained HTML/JS page; its template lines exceed 100.
+"newsroom/webapp.py" = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["newsroom/tests"]
+addopts = "-v"

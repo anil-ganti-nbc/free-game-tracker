@@ -1,0 +1,1 @@
+import xml.etree.ElementTree as ET; from newsroom.sources._http import fetch_text; root = ET.fromstring(fetch_text('https://blogs.nvidia.com/feed/')); titles = [i.find('title').text for i in root.findall('.//item') if i.find('title') is not None]; print(titles)

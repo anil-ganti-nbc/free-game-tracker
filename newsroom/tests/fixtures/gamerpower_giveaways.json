@@ -1,0 +1,68 @@
+[
+  {
+    "id": 3001,
+    "title": "Prime Freebie",
+    "worth": "$29.99",
+    "open_giveaway_url": "https://www.gamerpower.com/open/prime-freebie",
+    "type": "Game",
+    "platforms": "PC, Amazon Prime Gaming",
+    "end_date": "2026-07-30 23:59:00",
+    "status": "Active",
+    "gamerpower_url": "https://www.gamerpower.com/prime-freebie"
+  },
+  {
+    "id": 3002,
+    "title": "Humble Giveaway",
+    "worth": "N/A",
+    "open_giveaway_url": "https://www.gamerpower.com/open/humble-giveaway",
+    "type": "Game",
+    "platforms": "PC, Humble Bundle",
+    "end_date": "N/A",
+    "status": "Active",
+    "gamerpower_url": "https://www.gamerpower.com/humble-giveaway"
+  },
+  {
+    "id": 3003,
+    "title": "Epic Weekly Free (already covered)",
+    "worth": "$19.99",
+    "open_giveaway_url": "https://www.gamerpower.com/open/epic-dup",
+    "type": "Game",
+    "platforms": "PC, Epic Games Store",
+    "end_date": "2026-07-25 15:00:00",
+    "status": "Active",
+    "gamerpower_url": "https://www.gamerpower.com/epic-dup"
+  },
+  {
+    "id": 3004,
+    "title": "Steam 100% Off (already covered)",
+    "worth": "$9.99",
+    "open_giveaway_url": "https://www.gamerpower.com/open/steam-dup",
+    "type": "Game",
+    "platforms": "PC, Steam",
+    "end_date": "2026-07-22 17:00:00",
+    "status": "Active",
+    "gamerpower_url": "https://www.gamerpower.com/steam-dup"
+  },
+  {
+    "id": 3005,
+    "title": "Loot Pack Not A Game",
+    "worth": "$5.00",
+    "open_giveaway_url": "https://www.gamerpower.com/open/loot",
+    "type": "DLC & Loot",
+    "platforms": "PC, Ubisoft",
+    "end_date": "2026-07-28 12:00:00",
+    "status": "Active",
+    "gamerpower_url": "https://www.gamerpower.com/loot"
+  },
+  {
+    "id": 3006,
+    "title": "Expired Itch Game",
+    "worth": "$4.99",
+    "open_giveaway_url": "https://www.gamerpower.com/open/itch-old",
+    "type": "Game",
+    "platforms": "PC, itch.io",
+    "end_date": "2026-01-01 00:00:00",
+    "status": "Expired",
+    "gamerpower_url": "https://www.gamerpower.com/itch-old"
+  }
+]

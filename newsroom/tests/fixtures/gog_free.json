@@ -1,0 +1,45 @@
+{
+  "products": [
+    {
+      "id": "111",
+      "slug": "paid_giveaway",
+      "title": "Paid Giveaway",
+      "productType": "game",
+      "developers": ["Dev A"],
+      "publishers": ["Pub A"],
+      "storeLink": "https://www.gog.com/en/game/paid_giveaway",
+      "price": {
+        "final": "$0.00",
+        "base": "$9.99",
+        "baseMoney": { "amount": "9.99", "currency": "USD" },
+        "finalMoney": { "amount": "0.00", "currency": "USD" }
+      }
+    },
+    {
+      "id": "222",
+      "slug": "free_to_play",
+      "title": "Free To Play Game",
+      "productType": "game",
+      "developers": ["Dev B"],
+      "publishers": ["Pub B"],
+      "storeLink": "https://www.gog.com/en/game/free_to_play",
+      "price": {
+        "baseMoney": { "amount": "0.00", "currency": "USD" },
+        "finalMoney": { "amount": "0.00", "currency": "USD" }
+      }
+    },
+    {
+      "id": "333",
+      "slug": "a_demo",
+      "title": "Some Demo",
+      "productType": "game",
+      "developers": ["Dev C"],
+      "publishers": ["Pub C"],
+      "storeLink": "https://www.gog.com/en/game/a_demo",
+      "price": {
+        "baseMoney": { "amount": "0.00", "currency": "USD" },
+        "finalMoney": { "amount": "0.00", "currency": "USD" }
+      }
+    }
+  ]
+}

@@ -1,0 +1,211 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.14, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\anil\Desktop\Free Game tracker\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\anil\Desktop\Free Game tracker
+configfile: pyproject.toml
+testpaths: newsroom/tests
+plugins: anyio-4.14.2
+collecting ... collected 131 items
+
+<Dir Free Game tracker>
+  <Package newsroom>
+    <Package tests>
+      <Module test_amazon_luna.py>
+        <Function test_guess_ownership_epic>
+        <Function test_guess_ownership_unknown>
+        <Function test_parse_tiers>
+        <Function test_amazon_luna_standard_added>
+        <Function test_prime_gaming_claimable_added>
+        <Function test_luna_events_suppressed_giveaways>
+        <Function test_mixed_article_safety>
+      <Module test_compare.py>
+        Tests for the run-to-run comparison logic.
+        <Function test_new_events_are_detected>
+        <Function test_expired_events_are_detected>
+        <Function test_ending_soon_only_for_continuing_events>
+        <Function test_new_event_ending_soon_is_reported_as_new_only>
+          A brand-new giveaway that also ends soon must not appear in both buckets.
+        <Function test_no_changes_when_identical>
+        <Function test_has_changes_true_when_something_new>
+        <Function test_deduplicate_keeps_first_per_key>
+      <Module test_database.py>
+        Storage tests: round-trip fidelity, uniqueness, and timezone safety.
+        
+        Tests point the database at a temporary file via the public ``reset_engine``
+        seam, so no module internals are monkeypatched.
+        <Function test_round_trip_preserves_fields>
+        <Function test_event_key_is_unique>
+        <Function test_load_all_events_returns_domain_models>
+        <Function test_loaded_event_is_timezone_aware>
+          Regression: datetimes must survive a DB round-trip as UTC-aware.
+          
+          Without this, SQLite hands back naive datetimes and the model's time
+          helpers raise TypeError when compared against an aware "now".
+        <Function test_naive_datetime_is_rejected>
+          Storing a naive datetime is a bug and must fail loudly, not silently.
+        <Function test_sync_inserts_updates_and_preserves_discovered_at>
+        <Function test_sync_prunes_vanished_events>
+        <Function test_new_releases_round_trip_and_prune>
+        <Function test_deals_round_trip_and_prune>
+      <Module test_epic.py>
+        Tests for the Epic source parser.
+        
+        All tests run against a saved fixture with a fixed ``now`` ù no network. The
+        fixture covers one clean free game, one MSRP-less mystery giveaway, an ordinary
+        discount, an upcoming giveaway, a free DLC, a free bundle, a full-price game,
+        and an empty element, so every filter path is exercised.
+        <Function test_only_currently_free_games_are_returned>
+        <Function test_excludes_dlc_bundles_discounts_and_upcoming>
+        <Function test_clean_free_game_is_fully_specified>
+        <Function test_mystery_giveaway_has_reduced_confidence>
+        <Function test_nothing_free_after_windows_close>
+        <Function test_empty_payload_yields_no_events>
+        <Function test_parse_epic_datetime_handles_z_suffix>
+        <Function test_parse_epic_datetime_returns_none_for_garbage>
+        <Function test_upcoming_free_games_detected>
+        <Function test_upcoming_have_future_start_dates>
+      <Module test_gamerpower.py>
+        Tests for the GamerPower aggregator parser.
+        <Function test_keeps_only_complementary_active_games>
+        <Function test_first_party_platforms_are_excluded>
+        <Function test_prime_event_fields>
+        <Function test_missing_worth_and_end_reduce_confidence>
+        <Function test_non_list_payload_is_safe>
+        <Function test_end_date_offset_is_applied>
+          The configured offset shifts a naive end date before treating it as UTC.
+      <Module test_gog.py>
+        Tests for the GOG source parser (paid games currently free).
+        <Function test_only_paid_games_now_free_are_returned>
+        <Function test_giveaway_event_fields>
+        <Function test_empty_payload_yields_no_events>
+      <Module test_migration.py>
+        <Function test_migration_from_blank>
+          A completely fresh DB should hit the standard loop transparently.
+        <Function test_migration_from_legacy>
+          A DB matching the previous schema but lacking alembic tables should upgrade cleanly.
+        <Function test_idempotent_multiple_runs>
+      <Module test_models.py>
+        Unit tests for the NewsEvent domain model and its validation rules.
+        <Function test_minimal_valid_event_defaults>
+        <Function test_event_key_is_source_and_url>
+        <Function test_confidence_requires_a_reason>
+        <Function test_confidence_rejects_blank_reasons>
+        <Function test_confidence_score_bounds>
+        <Function test_current_price_may_not_exceed_original>
+        <Function test_promotion_end_before_start_is_rejected>
+        <Function test_is_ending_soon_true_within_window>
+        <Function test_is_ending_soon_false_without_end_date>
+        <Function test_is_expired_detects_past_end>
+      <Module test_notify.py>
+        Tests for Discord notification building and posting (no real network).
+        <Function test_payload_has_one_embed_per_game>
+        <Function test_no_payload_when_empty>
+        <Function test_min_confidence_filters_out_low_scores>
+        <Function test_more_than_ten_games_are_capped>
+        <Function test_subscription_events_suppressed>
+        <Function test_notify_skips_when_no_webhook>
+          With no webhook, nothing is posted and no client is touched.
+        <Function test_notify_posts_new_giveaways>
+        <Function test_breakout_payload_fields>
+        <Function test_breakout_payload_none_when_empty>
+        <Function test_deal_payload_fields>
+        <Function test_deal_payload_none_when_empty>
+        <Function test_post_is_fault_isolated_on_error>
+          A failing webhook must return False, not raise.
+        <Function test_post_retries_after_rate_limit>
+          A 429 is retried (honouring Retry-After) and then succeeds.
+        <Function test_post_gives_up_after_persistent_rate_limit>
+      <Module test_playstation_plus.py>
+        <Function test_extracts_essential_games>
+        <Function test_extracts_catalog_games>
+        <Function test_empty_html>
+        <Function test_deluxe_tier_handling>
+        <Function test_classics_catalog>
+      <Module test_quality.py>
+        Tests for the surfacing quality gate.
+        <Function test_default_gate_passes_everything>
+        <Function test_subscription_events_pass_gate>
+        <Function test_min_confidence_rejects_low_scores>
+        <Function test_require_known_price_rejects_missing_or_zero>
+        <Function test_unknown_price_allowed_when_not_required>
+        <Function test_min_price_floor>
+        <Function test_users_chosen_gate_combo>
+          confidence>=70 and known price: the configured 'no nothingburgers' combo.
+      <Module test_report.py>
+        Tests for Markdown and JSON report rendering.
+        <Function test_markdown_contains_candidate_facts>
+        <Function test_markdown_reports_no_changes>
+        <Function test_json_structure_and_counts>
+        <Function test_write_reports_creates_both_files>
+        <Function test_prune_removes_old_reports_but_keeps_latest_and_recent>
+        <Function test_prune_disabled_when_zero>
+        <Function test_ending_soon_section_included_for_continuing_event>
+      <Module test_run.py>
+        End-to-end tests for the run pipeline, with no network fetch.
+        
+        These exercise ``cli._execute_run`` ù the part of ``run`` after fetching ù so we
+        feed it hand-built events and assert on the diff, the written reports, and the
+        resulting database state.
+        <Function test_first_run_reports_all_new_and_persists>
+        <Function test_second_run_detects_new_and_expired>
+        <Function test_stable_run_reports_no_changes>
+        <Function test_dry_run_does_not_persist>
+        <Function test_failing_source_is_isolated>
+          One source raising an unexpected error must not lose the others.
+        <Function test_source_filter_selects_subset>
+        <Function test_latest_reports_are_written>
+        <Function test_quality_gate_suppresses_surfacing_but_still_stores>
+      <Module test_steam.py>
+        Tests for the Steam source parser (100%-off only).
+        <Function test_only_full_discounts_are_returned>
+        <Function test_full_discount_event_fields>
+        <Function test_missing_expiry_reduces_confidence>
+        <Function test_empty_payload_yields_no_events>
+        <Function test_parse_appdetails_extracts_dev_and_publisher>
+        <Function test_parse_appdetails_handles_failure>
+      <Module test_steam_breakouts.py>
+        Tests for the Steam breakout (well-reviewed new release) parsers.
+        <Function test_candidate_appids_from_new_releases>
+        <Function test_parse_release_reads_name_and_date>
+        <Function test_parse_release_handles_day_first_format>
+        <Function test_parse_release_skips_unparseable_or_coming_soon>
+        <Function test_parse_review_summary>
+        <Function test_tier_meets_threshold>
+        <Function test_within_window>
+      <Module test_steam_deals.py>
+        Tests for the Steam deals parser (discount + review filters).
+        <Function test_candidate_specials_filters_by_discount>
+        <Function test_build_deal_fields>
+        <Function test_min_reviews_and_tier_are_enforced_by_helpers>
+      <Module test_subscription_domain.py>
+        <Function test_legacy_event_key_unchanged>
+        <Function test_subscription_key_differs_by_tier>
+        <Function test_subscription_key_differs_by_addition_removal>
+        <Function test_normalization_removes_dupes_and_ignores_blanks>
+        <Function test_different_platforms_change_key>
+        <Function test_different_dates_change_key>
+      <Module test_webapp.py>
+        Tests for the local web dashboard, via FastAPI's TestClient (no browser).
+        <Function test_index_serves_html>
+        <Function test_state_reflects_stored_events>
+        <Function test_run_now_triggers_pipeline>
+        <Function test_run_now_is_serialized>
+          If a run holds the lock, a second request is rejected with 409.
+      <Module test_xbox_game_pass.py>
+        <Function test_parse_platforms>
+        <Function test_parse_plans>
+        <Function test_parse_historical_plans>
+        <Function test_parse_date>
+        <Function test_extract_post_sections_and_leakage>
+        <Function test_extract_sibling_metadata_safety>
+        <Function test_extract_ea_play_and_day_one>
+        <Function test_raise_source_error_on_fetch_fail>
+        <Function test_raise_source_error_on_invalid_xml>
+
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\anil\Desktop\Free Game tracker\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 131 tests collected in 0.76s =========================

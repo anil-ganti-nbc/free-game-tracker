@@ -1,0 +1,40 @@
+{
+  "specials": {
+    "id": "cat_specials",
+    "name": "Special Offers",
+    "items": [
+      {
+        "id": 100,
+        "type": 0,
+        "name": "Free This Week",
+        "discounted": true,
+        "discount_percent": 100,
+        "original_price": 1999,
+        "final_price": 0,
+        "currency": "USD",
+        "discount_expiration": 1782777600
+      },
+      {
+        "id": 200,
+        "type": 0,
+        "name": "Half Off Game",
+        "discounted": true,
+        "discount_percent": 50,
+        "original_price": 1999,
+        "final_price": 999,
+        "currency": "USD",
+        "discount_expiration": 1782777600
+      },
+      {
+        "id": 300,
+        "type": 0,
+        "name": "Freebie No Expiry",
+        "discounted": true,
+        "discount_percent": 100,
+        "original_price": 2999,
+        "final_price": 0,
+        "currency": "USD"
+      }
+    ]
+  }
+}

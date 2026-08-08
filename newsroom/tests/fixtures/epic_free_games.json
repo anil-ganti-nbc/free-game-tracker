@@ -1,0 +1,241 @@
+{
+  "data": {
+    "Catalog": {
+      "searchStore": {
+        "elements": [
+          {
+            "title": "Sample Free Game",
+            "id": "aaaa1111",
+            "namespace": "ns-sample",
+            "offerType": "BASE_GAME",
+            "isCodeRedemptionOnly": false,
+            "seller": { "name": "Sample Publisher LLC" },
+            "productSlug": "sample-free-game",
+            "urlSlug": "sample-free-game",
+            "customAttributes": [
+              { "key": "developerName", "value": "Sample Studio" },
+              { "key": "publisherName", "value": "Sample Publisher LLC" }
+            ],
+            "categories": [
+              { "path": "freegames" },
+              { "path": "games" },
+              { "path": "games/edition/base" }
+            ],
+            "catalogNs": { "mappings": [{ "pageSlug": "sample-free-game", "pageType": "productHome" }] },
+            "offerMappings": [{ "pageSlug": "sample-free-game", "pageType": "productHome" }],
+            "price": {
+              "totalPrice": {
+                "discountPrice": 0,
+                "originalPrice": 1999,
+                "currencyCode": "USD",
+                "currencyInfo": { "decimals": 2 }
+              }
+            },
+            "promotions": {
+              "promotionalOffers": [
+                {
+                  "promotionalOffers": [
+                    {
+                      "startDate": "2026-06-04T15:00:00.000Z",
+                      "endDate": "2026-06-11T15:00:00.000Z",
+                      "discountSetting": { "discountType": "PERCENTAGE", "discountPercentage": 0 }
+                    }
+                  ]
+                }
+              ],
+              "upcomingPromotionalOffers": []
+            }
+          },
+          {
+            "title": "Rogue Waters",
+            "id": "bbbb2222",
+            "namespace": "ns-mystery",
+            "offerType": "OTHERS",
+            "isCodeRedemptionOnly": true,
+            "seller": { "name": "Epic Dev Test Account" },
+            "productSlug": "rogue-waters-9764d6",
+            "urlSlug": "megasale-mysterygame-2026-week23-game2",
+            "customAttributes": [],
+            "categories": [
+              { "path": "freegames/vaulted" },
+              { "path": "freegames" },
+              { "path": "games" }
+            ],
+            "catalogNs": { "mappings": [] },
+            "offerMappings": [],
+            "price": {
+              "totalPrice": {
+                "discountPrice": 0,
+                "originalPrice": 0,
+                "currencyCode": "USD",
+                "currencyInfo": { "decimals": 2 }
+              }
+            },
+            "promotions": {
+              "promotionalOffers": [
+                {
+                  "promotionalOffers": [
+                    {
+                      "startDate": "2026-06-04T15:00:00.000Z",
+                      "endDate": "2026-06-11T15:00:00.000Z",
+                      "discountSetting": { "discountType": "PERCENTAGE", "discountPercentage": 0 }
+                    }
+                  ]
+                }
+              ],
+              "upcomingPromotionalOffers": []
+            }
+          },
+          {
+            "title": "Eternal Threads",
+            "id": "cccc3333",
+            "namespace": "ns-sale",
+            "offerType": "BASE_GAME",
+            "isCodeRedemptionOnly": false,
+            "seller": { "name": "Secret Mode Limited" },
+            "productSlug": "eternal-threads",
+            "categories": [{ "path": "freegames" }, { "path": "games" }],
+            "price": {
+              "totalPrice": {
+                "discountPrice": 399,
+                "originalPrice": 1999,
+                "currencyCode": "USD",
+                "currencyInfo": { "decimals": 2 }
+              }
+            },
+            "promotions": {
+              "promotionalOffers": [
+                {
+                  "promotionalOffers": [
+                    {
+                      "startDate": "2026-06-04T15:00:00.000Z",
+                      "endDate": "2026-06-11T15:00:00.000Z",
+                      "discountSetting": { "discountType": "PERCENTAGE", "discountPercentage": 20 }
+                    }
+                  ]
+                }
+              ],
+              "upcomingPromotionalOffers": []
+            }
+          },
+          {
+            "title": "The Ouroboros King",
+            "id": "dddd4444",
+            "namespace": "ns-upcoming",
+            "offerType": "BASE_GAME",
+            "isCodeRedemptionOnly": false,
+            "seller": { "name": "Plug In Digital SAS" },
+            "productSlug": "the-ouroboros-king",
+            "categories": [{ "path": "freegames" }, { "path": "games" }],
+            "price": {
+              "totalPrice": {
+                "discountPrice": 999,
+                "originalPrice": 999,
+                "currencyCode": "USD",
+                "currencyInfo": { "decimals": 2 }
+              }
+            },
+            "promotions": {
+              "promotionalOffers": [],
+              "upcomingPromotionalOffers": [
+                {
+                  "promotionalOffers": [
+                    {
+                      "startDate": "2026-06-11T15:00:00.000Z",
+                      "endDate": "2026-06-18T15:00:00.000Z",
+                      "discountSetting": { "discountType": "PERCENTAGE", "discountPercentage": 0 }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "title": "Sample DLC Pack",
+            "id": "eeee5555",
+            "namespace": "ns-dlc",
+            "offerType": "ADD_ON",
+            "isCodeRedemptionOnly": false,
+            "seller": { "name": "DLC Studio" },
+            "productSlug": "sample-dlc-pack",
+            "categories": [{ "path": "addons" }, { "path": "freegames" }],
+            "price": {
+              "totalPrice": {
+                "discountPrice": 0,
+                "originalPrice": 399,
+                "currencyCode": "USD",
+                "currencyInfo": { "decimals": 2 }
+              }
+            },
+            "promotions": {
+              "promotionalOffers": [
+                {
+                  "promotionalOffers": [
+                    {
+                      "startDate": "2026-06-04T15:00:00.000Z",
+                      "endDate": "2026-06-11T15:00:00.000Z",
+                      "discountSetting": { "discountType": "PERCENTAGE", "discountPercentage": 0 }
+                    }
+                  ]
+                }
+              ],
+              "upcomingPromotionalOffers": []
+            }
+          },
+          {
+            "title": "Sample Bundle",
+            "id": "ffff6666",
+            "namespace": "ns-bundle",
+            "offerType": "BUNDLE",
+            "isCodeRedemptionOnly": false,
+            "seller": { "name": "Bundle Studio" },
+            "productSlug": "sample-bundle",
+            "categories": [{ "path": "bundles" }, { "path": "freegames" }],
+            "price": {
+              "totalPrice": {
+                "discountPrice": 0,
+                "originalPrice": 2499,
+                "currencyCode": "USD",
+                "currencyInfo": { "decimals": 2 }
+              }
+            },
+            "promotions": {
+              "promotionalOffers": [
+                {
+                  "promotionalOffers": [
+                    {
+                      "startDate": "2026-06-04T15:00:00.000Z",
+                      "endDate": "2026-06-11T15:00:00.000Z",
+                      "discountSetting": { "discountType": "PERCENTAGE", "discountPercentage": 0 }
+                    }
+                  ]
+                }
+              ],
+              "upcomingPromotionalOffers": []
+            }
+          },
+          {
+            "title": "Full Price Game",
+            "id": "gggg7777",
+            "namespace": "ns-fullprice",
+            "offerType": "BASE_GAME",
+            "isCodeRedemptionOnly": false,
+            "seller": { "name": "Full Price Studio" },
+            "productSlug": "full-price-game",
+            "categories": [{ "path": "freegames" }, { "path": "games" }],
+            "price": {
+              "totalPrice": {
+                "discountPrice": 1999,
+                "originalPrice": 1999,
+                "currencyCode": "USD",
+                "currencyInfo": { "decimals": 2 }
+              }
+            },
+            "promotions": null
+          },
+          {}
+        ]
+      }
+    }
+  }
+}

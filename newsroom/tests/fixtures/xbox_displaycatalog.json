@@ -1,0 +1,307 @@
+{
+  "Products": [
+    {
+      "LastModifiedDate": "2026-07-03T06:02:42.1465431Z",
+      "LocalizedProperties": [
+        {
+          "DeveloperName": "Flashbulb Games",
+          "PublisherName": "Flashbulb Games",
+          "PublisherAddress": null,
+          "PublisherWebsiteUri": "http://www.playtrailmakers.com",
+          "SupportUri": "mailto:support@flashbulbgames.com",
+          "SupportPhone": null,
+          "CMSVideos": "",
+          "EligibilityProperties": "@{Remediations=System.Object[]; Affirmations=System.Object[]}",
+          "Franchises": "",
+          "Images": "                        ",
+          "Videos": "",
+          "ProductDescription": "Trailmakers is a play-as-you-like vehicle building game with reliable physics, controlled chaos, land, sea, and air combat.\n\nJump straight into the open-world Pioneers campaign where you complete missions, craft blocks and fight BOTNAKs. If you just want to play around with a plethora of different blocks, there are five dedicated sandbox maps that will let you tinker with vehicles in space, water, and ground. \n\nSandbox gives you fun challenges, creative freedom, and high speed driving and flying.\n\nUse the integrated workshop to download other people’s creations and have addictingly fun skirmishes with up to seven friends in multiplayer.\n\nBUILD EVERYTHING\nThe intricate yet intuitive building mechanic allows you to either choose pre-made vehicles from the game and the community workshop or build your own vehicles completely from scratch using hundreds of blocks that affect both aerodynamics, functionality, speed, combat ability, and much more in a world ruled by reliable physics. \n\nCustomize your character and block designs with a heap of different skins, colors, and pattern combinations to create your own personal brand. \n\nThe builder is made to be as accessible and intuitive as possible for players who are new to building games while also equipped with features for the more hardcore segment of engineers: Easy to learn, hard to master!\n\nCOMBAT\nTrailmakers offers an arsenal of 14 different weapons like minigun, EMPs, laser blasters, rocket launchers and shotguns to name a few. Set up a server with your friends or join one of the hundreds of public games to test them out in different PvP scenarios. Fight in the air, ocean, ground, or in space. Your choice of mayhem is entirely up to you.\n\n\nMULTIPLAYER\nAll game modes in Trailmakers, including the main story, allow Multiplayer for 2-8 people. \nJump into one of the five dedicated sandbox maps, hang out and build together, test each other's vehicles, or share and be inspired from thousands of incredible community made workshop builds.\n\nControlled chaos, land, sea, air, and space combat awaits you and your friends - or jump into Race Island where 14 different tracks are ready for you to put your name on the leaderboards.  \n\nThis is the ultimate do-whatever-your-heart-desires game.\n\nCAMPAIGN\nIn the main game mode, “Pioneers” you will dive head-first into a breathtaking open world with loveable NPCs, challenging enemies, and an adventurous story. Unlock new parts as you complete missions and build different vehicles for the different biomes and terrains - play the campaign alone or multiplayer.\n\nYou will join the Trailmakers: An elite society of engineers and are sent out to help the population of Gregory - a community of peaceful frogs who have been invaded by the evil BOTNAKs who are ruthlessly mining the planet and stealing its resources. ",
+          "ProductTitle": "Trailmakers",
+          "ShortTitle": "Trailmakers",
+          "SortTitle": "Trail makers",
+          "FriendlyTitle": null,
+          "ShortDescription": "Build the ultimate vehicle and explore a vast open world filled with challenges and adventure. Play solo or team up with friends in multiplayer to conquer the toughest obstacles. With a thrilling campaign mode and endless creative possibilities, Trailmakers is the ultimate sandbox for builders and adventurers alike.",
+          "SearchTitles": "      ",
+          "VoiceTitle": "",
+          "RenderGroupDetails": null,
+          "ProductDisplayRanks": "",
+          "InteractiveModelConfig": null,
+          "Interactive3DEnabled": false,
+          "Language": "en",
+          "Markets": "US DZ AR AU AT BH BD BE BR BG CA CL CN CO CR HR CY CZ DK EG EE FI FR DE GR GT HK HU IS IN ID IQ IE IL IT JP JO KZ KE KW LV LB LI LT LU MY MT MR MX MA NL NZ NG NO OM PK PE PH PL PT QA RO RU SA RS SG SK SI ZA KR ES SE CH TW TH TT TN TR UA AE GB VN YE LY LK UY VE AF AX AL AS AO AI AQ AG AM AW BO BQ BA BW BV IO BN BF BI KH CM CV KY CF TD TL DJ DM DO EC SV GQ ER ET FK FO FJ GF PF TF GA GM GE GH GI GL GD GP GU GG GN GW GY HT HM HN AZ BS BB BY BZ BJ BM BT KM CG CD CK CX CC CI CW JM SJ JE KI KG LA LS LR MO MK MG MW IM MH MQ MU YT FM MD MN MS MZ MM NA NR NP MV ML NC NI NE NU NF PW PS PA PG PY RE RW BL MF WS ST SN MP PN SX SB SO SC SL GS SH KN LC PM VC TJ TZ TG TK TO TM TC TV UM UG VI VG WF EH ZM ZW UZ VU SR SZ AD MC SM ME VA NEUTRAL"
+        }
+      ],
+      "MarketProperties": [
+        {
+          "OriginalReleaseDate": "2019-09-18T16:00:00Z",
+          "MinimumUserAge": 7,
+          "ContentRatings": "          ",
+          "RelatedProducts": "       ",
+          "UsageData": "  ",
+          "BundleConfig": null,
+          "Markets": "US"
+        }
+      ],
+      "ProductASchema": "Product;3",
+      "ProductBSchema": "ProductGame;1",
+      "ProductId": "9NSFGM8J6MBJ",
+      "Properties": {
+        "Attributes": [
+          "@{Name=XblOnlineCoop; Minimum=2; Maximum=8; ApplicablePlatforms=; Group=}",
+          "@{Name=XblOnlineMultiPlayer; Minimum=2; Maximum=8; ApplicablePlatforms=; Group=}",
+          "@{Name=BroadcastSupport; Minimum=; Maximum=; ApplicablePlatforms=; Group=}",
+          "@{Name=XblCrossPlatformMultiPlayer; Minimum=; Maximum=; ApplicablePlatforms=; Group=}",
+          "@{Name=Capability4k; Minimum=; Maximum=; ApplicablePlatforms=System.Object[]; Group=}",
+          "@{Name=SinglePlayer; Minimum=; Maximum=; ApplicablePlatforms=System.Object[]; Group=}",
+          "@{Name=XblCrossPlatformCoop; Minimum=; Maximum=; ApplicablePlatforms=System.Object[]; Group=}",
+          "@{Name=XboxLiveCrossGenMP; Minimum=; Maximum=; ApplicablePlatforms=; Group=}",
+          "@{Name=ConsoleGen9Optimized; Minimum=; Maximum=; ApplicablePlatforms=; Group=}",
+          "@{Name=ConsoleCrossGen; Minimum=; Maximum=; ApplicablePlatforms=; Group=}",
+          "@{Name=XblAchievements; Minimum=; Maximum=; ApplicablePlatforms=; Group=}",
+          "@{Name=XblPresence; Minimum=; Maximum=; ApplicablePlatforms=; Group=}",
+          "@{Name=XblCloudSaves; Minimum=; Maximum=; ApplicablePlatforms=; Group=}",
+          "@{Name=XPA; Minimum=; Maximum=; ApplicablePlatforms=; Group=}",
+          "@{Name=XboxLive; Minimum=; Maximum=; ApplicablePlatforms=; Group=}"
+        ],
+        "CanInstallToSDCard": true,
+        "Category": "Racing & flying",
+        "Categories": [
+          "Racing & flying",
+          "Simulation"
+        ],
+        "Subcategory": null,
+        "IsAccessible": true,
+        "IsDemo": false,
+        "IsLineOfBusinessApp": false,
+        "IsPublishedToLegacyWindowsPhoneStore": false,
+        "IsPublishedToLegacyWindowsStore": false,
+        "PackageFamilyName": "Flashbulb.Trailmakers_8a41h19xsg1bm",
+        "PackageIdentityName": "Flashbulb.Trailmakers",
+        "PublisherCertificateName": "CN=00A4225B-7F0A-4644-B16E-C2DB894FE9A7",
+        "PublisherId": "53601670",
+        "SkuDisplayGroups": [
+          "@{Id=01; Treatment=MergeAvailabilities}"
+        ],
+        "XboxLiveTier": "Full",
+        "XboxXPA": null,
+        "XboxCrossGenSetId": null,
+        "XboxConsoleGenOptimized": [
+          "ConsoleGen8",
+          "ConsoleGen9"
+        ],
+        "XboxConsoleGenCompatible": [
+          "ConsoleGen8",
+          "ConsoleGen9"
+        ],
+        "XboxLiveGoldRequired": false,
+        "ExtendedMetadata": "9NSFGM8J6MBJ_22f05e74-70cf-4ed5-ace6-489a2b25a93e",
+        "XBOX": {
+          "XboxProperties": "1a958df9-46b4-4d34-b781-6c4f27aed821",
+          "SubmissionId": "1152921505701322102",
+          "XboxGamingMetadata": "9NSFGM8J6MBJ_22f05e74-70cf-4ed5-ace6-489a2b25a93e"
+        },
+        "ExtendedClientMetadata": {},
+        "OwnershipType": null,
+        "PdpBackgroundColor": "#FFFFFF",
+        "HasAddOns": true,
+        "RevisionId": "2026-07-03T06:02:50.0217583Z"
+      },
+      "AlternateIds": [
+        {
+          "IdType": "LegacyWindowsStoreProductId",
+          "Value": "ae80d2ed-1bc9-4b93-b5b5-4053dffa8532"
+        },
+        {
+          "IdType": "LegacyWindowsPhoneProductId",
+          "Value": "c1646e56-af5a-44d3-94fe-4c414cabd9cb"
+        },
+        {
+          "IdType": "XboxTitleId",
+          "Value": "1805568255"
+        },
+        {
+          "IdType": "LegacyXboxProductId",
+          "Value": "0ba4a057-9d69-40c3-9f9f-e8fc9d6fcb1e"
+        }
+      ],
+      "DomainDataVersion": null,
+      "IngestionSource": "DCE",
+      "IsMicrosoftProduct": false,
+      "PreferredSkuId": "0010",
+      "ProductType": "Game",
+      "ValidationData": {
+        "PassedValidation": false,
+        "RevisionId": "2026-07-03T06:02:50.0217583Z||.||71ae5688-ef50-4c63-8958-009930386cc3||1152921505701322102||RETAIL||fullrelease",
+        "ValidationResultUri": ""
+      },
+      "MerchandizingTags": [],
+      "PartD": "",
+      "SandboxId": "RETAIL",
+      "ProductFamily": "Games",
+      "SchemaVersion": "3",
+      "IsSandboxedProduct": true,
+      "ProductKind": "Game",
+      "ProductPolicies": {},
+      "DisplaySkuAvailabilities": [
+        {
+          "Sku": "@{LastModifiedDate=07/03/2026 06:02:42; LocalizedProperties=System.Object[]; MarketProperties=System.Object[]; ProductId=9NSFGM8J6MBJ; Properties=; SkuASchema=Sku;3; SkuBSchema=SkuGame;1; SkuId=0010; SkuType=full; RecurrencePolicy=; SubscriptionPolicyId=}",
+          "Availabilities": "                   ",
+          "HistoricalBestAvailabilities": ""
+        },
+        {
+          "Sku": "@{LastModifiedDate=07/03/2026 06:02:42; LocalizedProperties=System.Object[]; MarketProperties=System.Object[]; ProductId=9NSFGM8J6MBJ; Properties=; SkuASchema=Sku;3; SkuBSchema=SkuGame;1; SkuId=0011; SkuType=trial; RecurrencePolicy=; SubscriptionPolicyId=}",
+          "Availabilities": " ",
+          "HistoricalBestAvailabilities": ""
+        }
+      ]
+    },
+    {
+      "LastModifiedDate": "2026-04-27T19:33:43.2057387Z",
+      "LocalizedProperties": [
+        {
+          "DeveloperName": "Ubisoft",
+          "PublisherName": "Ubisoft",
+          "PublisherAddress": null,
+          "PublisherWebsiteUri": "https://www.ubi.com/",
+          "SupportUri": "",
+          "SupportPhone": null,
+          "CMSVideos": "",
+          "EligibilityProperties": "@{Remediations=System.Object[]; Affirmations=System.Object[]}",
+          "Franchises": "",
+          "Images": "               ",
+          "Videos": "",
+          "ProductDescription": "Jump into an escape room set in a deranged mind and experience a first-person exploration game in a chilling new dimension. Shift between three perspectives and attempt to unravel the mystery hiding in this mind-bending psychological thriller. Project yourself into a riveting narrative experience and become immersed in an unsettling psychological thriller. Piece together a family's mystery as you recover fragmented memories from the corrupted consciousness of each perspective. In this first-person narrative mystery, you must explore the walls of the family's home to interpret events and discover the truth.",
+          "ProductTitle": "Transference™",
+          "ShortTitle": "Transference™",
+          "SortTitle": "Transference™",
+          "FriendlyTitle": null,
+          "ShortDescription": "Jump into an escape room set in a deranged mind and experience a first-person exploration game in a chilling new dimension. Shift between three perspectives and attempt to unravel the mystery hiding in this mind-bending psychological thriller.",
+          "SearchTitles": "      ",
+          "VoiceTitle": "Transference™",
+          "RenderGroupDetails": null,
+          "ProductDisplayRanks": "",
+          "InteractiveModelConfig": null,
+          "Interactive3DEnabled": false,
+          "Language": "en-us",
+          "Markets": "US DZ AR AU AT BH BD BE BR BG CA CL CN CO CR HR CY CZ DK EG EE FI FR DE GR GT HK HU IS IN ID IQ IE IL IT JP JO KZ KE KW LV LB LI LT LU MY MT MR MX MA NL NZ NG NO OM PK PE PH PL PT QA RO RU SA RS SG SK SI ZA KR ES SE CH TW TH TT TN TR UA AE GB VN YE LY LK UY VE AF AX AL AS AO AI AQ AG AM AW BO BQ BA BW BV IO BN BF BI KH CM CV KY CF TD TL DJ DM DO EC SV GQ ER ET FK FO FJ GF PF TF GA GM GE GH GI GL GD GP GU GG GN GW GY HT HM HN AZ BS BB BY BZ BJ BM BT KM CG CD CK CX CC CI CW JM SJ JE KI KG LA LS LR MO MK MG MW IM MH MQ MU YT FM MD MN MS MZ MM NA NR NP MV ML NC NI NE NU NF PW PS PA PG PY RE RW BL MF WS ST SN MP PN SX SB SO SC SL GS SH KN LC PM VC TJ TZ TG TK TO TM TC TV UM UG VI VG WF EH ZM ZW UZ VU SR SZ AD MC SM ME VA NEUTRAL"
+        }
+      ],
+      "MarketProperties": [
+        {
+          "OriginalReleaseDate": "2018-09-18T00:00:00Z",
+          "MinimumUserAge": 12,
+          "ContentRatings": "           ",
+          "RelatedProducts": "",
+          "UsageData": "  ",
+          "BundleConfig": null,
+          "Markets": "US"
+        }
+      ],
+      "ProductASchema": "Product;3",
+      "ProductBSchema": "ProductGame;1",
+      "ProductId": "C0RNBFHQ7X96",
+      "Properties": {
+        "Attributes": [
+          "@{Name=BroadcastSupport; Minimum=; Maximum=; ApplicablePlatforms=; Group=}",
+          "@{Name=SinglePlayer; Minimum=; Maximum=; ApplicablePlatforms=System.Object[]; Group=}",
+          "@{Name=XboxLive; Minimum=; Maximum=; ApplicablePlatforms=; Group=}"
+        ],
+        "CanInstallToSDCard": true,
+        "Category": "Other",
+        "Categories": [
+          "Other"
+        ],
+        "Subcategory": null,
+        "IsAccessible": false,
+        "IsDemo": false,
+        "IsLineOfBusinessApp": false,
+        "IsPublishedToLegacyWindowsPhoneStore": false,
+        "IsPublishedToLegacyWindowsStore": false,
+        "PackageFamilyName": "Ubisoft.Transference_ngz4m417e0mpw",
+        "PackageIdentityName": "Ubisoft.Transference",
+        "PublisherCertificateName": "CN=C3139357-8858-4D2E-A18E-8ADEAB85C66A",
+        "PublisherId": "10111770",
+        "SkuDisplayGroups": [
+          "@{Id=01; Treatment=MergeAvailabilities}"
+        ],
+        "XboxLiveTier": "Full",
+        "XboxXPA": null,
+        "XboxCrossGenSetId": null,
+        "XboxConsoleGenOptimized": [
+          "ConsoleGen8"
+        ],
+        "XboxConsoleGenCompatible": [
+          "ConsoleGen8",
+          "ConsoleGen9"
+        ],
+        "XboxLiveGoldRequired": false,
+        "ExtendedMetadata": "C0RNBFHQ7X96_76721906-7000-4bbb-b0d9-12aa713a6599",
+        "XBOX": {
+          "XboxProperties": "2fe687ab-b8d6-4b46-8518-2e04acf18854",
+          "SubmissionId": "1152921505700232018",
+          "XboxGamingMetadata": "C0RNBFHQ7X96_76721906-7000-4bbb-b0d9-12aa713a6599"
+        },
+        "ExtendedClientMetadata": {},
+        "OwnershipType": null,
+        "PdpBackgroundColor": "#FFFFFF",
+        "HasAddOns": false,
+        "RevisionId": "2026-04-27T19:33:48.5496257Z",
+        "ProductGroupId": "9fbfec0e-380d-4236-ad80-a4da4a4baba2",
+        "ProductGroupName": "Transference"
+      },
+      "AlternateIds": [
+        {
+          "IdType": "LegacyWindowsStoreProductId",
+          "Value": "b3cf63b9-eb61-4c0b-a986-5d8c28a0600f"
+        },
+        {
+          "IdType": "LegacyWindowsPhoneProductId",
+          "Value": "557c31fe-f7d8-420f-9367-45a79aa0d1e8"
+        },
+        {
+          "IdType": "XboxTitleId",
+          "Value": "383880849"
+        },
+        {
+          "IdType": "LegacyXboxProductId",
+          "Value": "f1540f9f-1b8b-4a77-9a63-82addaa75a3f"
+        }
+      ],
+      "DomainDataVersion": null,
+      "IngestionSource": "DCE",
+      "IsMicrosoftProduct": false,
+      "PreferredSkuId": "0001",
+      "ProductType": "Game",
+      "ValidationData": {
+        "PassedValidation": false,
+        "RevisionId": "2026-04-27T19:33:48.5496257Z||.||42d094de-ca9d-47d4-a056-5bece29871d2||1152921505700232018||RETAIL||fullrelease",
+        "ValidationResultUri": ""
+      },
+      "MerchandizingTags": [],
+      "PartD": "",
+      "SandboxId": "RETAIL",
+      "ProductFamily": "Games",
+      "SchemaVersion": "3",
+      "IsSandboxedProduct": true,
+      "ProductKind": "Game",
+      "ProductPolicies": {},
+      "DisplaySkuAvailabilities": [
+        {
+          "Sku": "@{LastModifiedDate=04/27/2026 19:33:43; LocalizedProperties=System.Object[]; MarketProperties=System.Object[]; ProductId=C0RNBFHQ7X96; Properties=; SkuASchema=Sku;3; SkuBSchema=SkuGame;1; SkuId=0001; SkuType=full; RecurrencePolicy=; SubscriptionPolicyId=}",
+          "Availabilities": "           ",
+          "HistoricalBestAvailabilities": ""
+        },
+        {
+          "Sku": "@{LastModifiedDate=04/27/2026 19:33:43; LocalizedProperties=System.Object[]; MarketProperties=System.Object[]; ProductId=C0RNBFHQ7X96; Properties=; SkuASchema=Sku;3; SkuBSchema=SkuGame;1; SkuId=0003; SkuType=full; RecurrencePolicy=; SubscriptionPolicyId=}",
+          "Availabilities": "",
+          "HistoricalBestAvailabilities": ""
+        },
+        {
+          "Sku": "@{LastModifiedDate=04/27/2026 19:33:43; LocalizedProperties=System.Object[]; MarketProperties=System.Object[]; ProductId=C0RNBFHQ7X96; Properties=; SkuASchema=Sku;3; SkuBSchema=SkuGame;1; SkuId=0004; SkuType=trial; RecurrencePolicy=; SubscriptionPolicyId=}",
+          "Availabilities": " ",
+          "HistoricalBestAvailabilities": ""
+        }
+      ]
+    }
+  ]
+}

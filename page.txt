@@ -1,0 +1,148 @@
+_PAGE = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Newsroom — Free Games</title>
+<style>
+  :root { --bg:#0f1220; --card:#1a1e33; --line:#2b3050; --text:#e8eaf5; --muted:#9aa2c0;
+          --accent:#6ea8fe; --good:#2ecc71; --warn:#f1c40f; --bad:#e74c3c; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#0f1220; color:#e8eaf5;
+         font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  header { display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+           padding:18px 24px; border-bottom:1px solid var(--line); }
+  h1 { font-size:18px; margin:0; letter-spacing:.3px; }
+  .muted { color:var(--muted); }
+  .spacer { flex:1; }
+  button { background:var(--accent); color:#08122b; border:0; border-radius:8px;
+           padding:9px 16px; font-weight:600; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:default; }
+  main { padding:24px; max-width:1100px; margin:0 auto; }
+  .cards { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:14px 18px; min-width:120px; }
+  .card .n { font-size:26px; font-weight:700; }
+  .card .l { color:var(--muted); font-size:13px; }
+  section { margin:22px 0; }
+  h2 { font-size:15px; text-transform:uppercase; letter-spacing:.6px;
+       color:var(--muted); border-bottom:1px solid var(--line); padding-bottom:6px; }
+  table { width:100%; border-collapse:collapse; }
+  th,td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line);
+          vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:13px; }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  .pill { display:inline-block; padding:1px 8px; border-radius:999px; font-size:12px;
+          font-weight:600; }
+  .ok { background:rgba(46,204,113,.15); color:var(--good); }
+  .stale, .err { background:rgba(231,76,60,.15); color:var(--bad); }
+  .msg { font-size:13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>📰 Newsroom <span class="muted">— free game watch</span></h1>
+  <div class="spacer"></div>
+  <span id="gen" class="muted"></span>
+  <button id="run" onclick="runNow()">Run now</button>
+</header>
+<main>
+  <div class="cards" id="cards"></div>
+  <div id="msg" class="msg muted"></div>
+  <section><h2>Current free giveaways</h2><div id="giveaways"></div></section>
+  <section>
+    <h2>Breakout new releases
+      <span style="text-transform:none;letter-spacing:0;float:right;font-weight:400">
+        within <span id="dayval">14</span> days
+        <input id="days" type="range" min="1" max="14" value="14" oninput="renderBreakouts()">
+      </span>
+    </h2>
+    <div id="breakouts"></div>
+  </section>
+  <section><h2>Steam deals (well-reviewed)</h2><div id="deals"></div></section>
+  <section id="upcoming-wrap"><h2>Upcoming (heads-up)</h2><div id="upcoming"></div></section>
+  <section><h2>Source health</h2><div id="health"></div></section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let STATE = {breakouts: []};
+function money(v){ return (v===null||v===undefined) ? "—" : ("$"+Number(v).toFixed(2)); }
+function esc(s){ const d=document.createElement("div"); d.textContent=s??""; return d.innerHTML; }
+
+function renderBreakouts(){
+  const days = Number($("days").value); $("dayval").textContent = days;
+  const rows = STATE.breakouts.filter(b => b.days_since <= days);
+  $("breakouts").innerHTML = rows.length ? `<table>
+    <tr><th>Game</th><th>Reviews</th><th>Count</th><th>Positive</th><th>Released</th><th>Age</th></tr>` +
+    rows.map(b => `<tr>
+      <td><a href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.name)}</a></td>
+      <td>${esc(b.review_desc)}</td>
+      <td>${b.total_reviews.toLocaleString()}</td>
+      <td>${b.positive_pct}%</td>
+      <td>${esc(b.release_date)}</td>
+      <td>${b.days_since}d</td></tr>`).join("") + `</table>`
+    : `<p class="muted">No breakout releases within ${days} days.</p>`;
+}
+
+async function load(){
+  const r = await fetch("/api/state"); const s = await r.json(); STATE = s;
+  $("gen").textContent = s.generated_at ? ("last run: "+new Date(s.generated_at).toLocaleString()) : "no runs yet";
+  const c = s.counts;
+  $("cards").innerHTML = [
+    ["Giveaways", c.giveaways], ["Deals", c.deals], ["Breakouts", c.breakouts],
+    ["Sources", c.sources], ["Upcoming", c.upcoming], ["Stale sources", c.stale]
+  ].map(([l,n]) => `<div class="card"><div class="n">${n}</div><div class="l">${l}</div></div>`).join("");
+
+  $("giveaways").innerHTML = s.giveaways.length ? `<table>
+    <tr><th>Store</th><th>Game</th><th>MSRP</th><th>Ends</th><th>Conf.</th></tr>` +
+    s.giveaways.map(g => `<tr>
+      <td>${esc(g.source)}</td>
+      <td><a href="${esc(g.url)}" target="_blank" rel="noopener">${esc(g.title)}</a></td>
+      <td>${money(g.original_price)} → Free</td>
+      <td>${g.promotion_end ? esc(g.promotion_end.slice(0,10)) : "—"}</td>
+      <td>${g.confidence}</td></tr>`).join("") + `</table>`
+    : `<p class="muted">None right now.</p>`;
+
+  renderBreakouts();
+
+  $("deals").innerHTML = s.deals.length ? `<table>
+    <tr><th>Game</th><th>Off</th><th>Price</th><th>Reviews</th><th>Count</th><th>Ends</th></tr>` +
+    s.deals.map(d => `<tr>
+      <td><a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.name)}</a></td>
+      <td>-${d.discount_percent}%</td>
+      <td>${d.original_price!=null && d.final_price!=null ? "$"+d.final_price.toFixed(2)+" <span class='muted'>("+money(d.original_price)+")</span>" : "—"}</td>
+      <td>${esc(d.review_desc)}</td>
+      <td>${d.total_reviews.toLocaleString()}</td>
+      <td>${d.discount_end ? esc(d.discount_end) : "—"}</td></tr>`).join("") + `</table>`
+    : `<p class="muted">No qualifying deals right now.</p>`;
+
+  $("upcoming-wrap").style.display = s.upcoming.length ? "" : "none";
+  $("upcoming").innerHTML = s.upcoming.map(u => `<div>• <a href="${esc(u.url)}" target="_blank" rel="noopener">${esc(u.title)}</a>${u.starts ? " — free from "+esc(u.starts.slice(0,10)) : ""}</div>`).join("");
+
+  $("health").innerHTML = `<table>
+    <tr><th>Source</th><th>Status</th><th>Last success</th><th>Games</th></tr>` +
+    s.health.map(h => `<tr>
+      <td>${esc(h.source)}</td>
+      <td><span class="pill ${h.stale ? "stale" : (h.status==="ok" ? "ok":"err")}">${h.stale?"stale":esc(h.status)}</span></td>
+      <td>${h.last_success_at ? new Date(h.last_success_at).toLocaleString() : "never"}</td>
+      <td>${h.count}</td></tr>`).join("") + `</table>`;
+}
+
+async function runNow(){
+  const b = $("run"); b.disabled = true; $("msg").textContent = "Running…";
+  try {
+    const r = await fetch("/api/run", {method:"POST"});
+    const d = await r.json();
+    if (d.ok){ const x=d.summary; $("msg").textContent = `Done: ${x.new} new, ${x.ending_soon} ending soon, ${x.expired} gone.`; }
+    else { $("msg").textContent = d.error || "Run failed."; }
+  } catch(e){ $("msg").textContent = "Run failed: "+e; }
+  b.disabled = false; load();
+}
+
+load();
+setInterval(load, 30000);
+</script>
+</body>
+</html>
+"""
