@@ -1,0 +1,23 @@
+# Free Game Tracker — isolated staging/candidate validation. Separate volume,
+# separate container name, notifications disabled by default so a candidate
+# build never posts to the real Discord channel. Never points at fgt_data.
+#
+# Usage: docker compose -f docker-compose.yml -f docker-compose.staging.yml
+#          run --rm free-game-tracker run --dry-run
+services:
+  free-game-tracker:
+    image: free-game-tracker:${IMAGE_TAG:?set IMAGE_TAG to the candidate commit SHA}
+    container_name: free-game-tracker-staging
+    environment:
+      NEWSROOM_DATABASE_PATH: /app/data/newsroom.db
+      NEWSROOM_REPORTS_DIR: /app/data/reports
+      # Deliberately unset unless the operator opts in to a *staging* webhook
+      # destination — never the production channel.
+      NEWSROOM_DISCORD_WEBHOOK_URL: ${NEWSROOM_STAGING_DISCORD_WEBHOOK_URL:-}
+      NEWSROOM_RELEASE_CHANNEL: staging
+    volumes:
+      - fgt_staging_data:/app/data
+
+volumes:
+  fgt_staging_data:
+    name: fgt_staging_data

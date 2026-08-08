@@ -1,0 +1,32 @@
+# Free Game Tracker — production. One-shot job, no public ports, no Docker
+# socket. Invoke with: docker compose run --rm free-game-tracker run
+# IMAGE_TAG must be an immutable commit SHA or release tag — never rely on
+# a bare `:latest` as the only deployable reference.
+services:
+  free-game-tracker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: free-game-tracker:${IMAGE_TAG:?set IMAGE_TAG to a commit SHA or release tag}
+    container_name: free-game-tracker-production
+    restart: "no"
+    environment:
+      NEWSROOM_DATABASE_PATH: /app/data/newsroom.db
+      NEWSROOM_REPORTS_DIR: /app/data/reports
+      NEWSROOM_DISCORD_WEBHOOK_URL: ${NEWSROOM_DISCORD_WEBHOOK_URL:?production requires a real webhook or explicit empty value}
+      NEWSROOM_RELEASE_CHANNEL: production
+      NEWSROOM_MIN_CONFIDENCE: ${NEWSROOM_MIN_CONFIDENCE:-0}
+      NEWSROOM_REQUIRE_KNOWN_PRICE: ${NEWSROOM_REQUIRE_KNOWN_PRICE:-false}
+      NEWSROOM_MIN_PRICE: ${NEWSROOM_MIN_PRICE:-0}
+    volumes:
+      - fgt_data:/app/data
+    healthcheck:
+      test: ["CMD", "newsroom", "health"]
+      interval: 60s
+      timeout: 20s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  fgt_data:
+    name: fgt_production_data

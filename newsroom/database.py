@@ -320,11 +320,11 @@ def init_db() -> None:
     import alembic.command
     import alembic.config
 
-    from newsroom.config import PROJECT_ROOT
+    alembic_home = settings.alembic_home
 
     # We maintain a small migration runner that executes natively preventing user interventions
-    alembic_cfg = alembic.config.Config(str(PROJECT_ROOT / "alembic.ini"))
-    alembic_cfg.set_main_option("script_location", str(PROJECT_ROOT / "alembic"))
+    alembic_cfg = alembic.config.Config(str(alembic_home / "alembic.ini"))
+    alembic_cfg.set_main_option("script_location", str(alembic_home / "alembic"))
 
     # If the user has a legacy DB that never saw Alembic, stamp it to the baseline schema revision.
     if legacy_exists and not alembic_exists:

@@ -447,3 +447,31 @@ def serve(
 def version() -> None:
     """Print the application version."""
     console.print(f"newsroom {__version__}")
+
+
+@app.command()
+def identity() -> None:
+    """Print the Stage 0.5-compatible runtime identity as JSON."""
+    import json
+
+    from newsroom.runtime_bridge import as_jsonable, get_identity
+
+    console.print(json.dumps(as_jsonable(get_identity()), indent=2, default=str))
+
+
+@app.command()
+def health() -> None:
+    """Print truthful runtime health as JSON. Exits non-zero only when failed.
+
+    Does not run collectors or mutate state beyond ensuring the schema exists
+    (the same init_db() every other command already performs).
+    """
+    import json
+
+    from newsroom.runtime_bridge import as_jsonable, get_health
+
+    payload = as_jsonable(get_health())
+    console.print(json.dumps(payload, indent=2, default=str))
+    state = payload.get("operational_state")
+    if state == "failed":
+        raise typer.Exit(code=1)

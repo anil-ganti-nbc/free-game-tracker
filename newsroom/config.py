@@ -143,6 +143,29 @@ class Settings(BaseSettings):
         description="If set, newly free games are posted to this Discord webhook.",
     )
 
+    # --- Packaging ------------------------------------------------------------
+    # alembic.ini/alembic/ are project-level files, not part of the installed
+    # Python package, so they can't be located via __file__ once the app is
+    # `pip install`-ed non-editable (site-packages moves; these don't follow).
+    # Defaults to the old PROJECT_ROOT-based assumption so source/editable
+    # checkouts (the only way this has run to date) are unaffected; a real
+    # install sets NEWSROOM_ALEMBIC_HOME to wherever those files were placed.
+    alembic_home: Path = Field(
+        default=PROJECT_ROOT,
+        description="Directory containing alembic.ini and the alembic/ migrations dir.",
+    )
+
+    # --- Release channel ------------------------------------------------------
+    # Reflects the actual promotion state of *this running instance*, not a
+    # source-code label. Must be set explicitly by the operator/deploy config;
+    # defaults to the least-trusted channel so an unconfigured deployment never
+    # silently claims to be production. Approved values: experimental, soaking,
+    # staging, production, repair, deprecated.
+    release_channel: str = Field(
+        default="experimental",
+        description="Operational release channel of this deployment.",
+    )
+
     # --- Quality gate (what surfaces to reports and notifications) ----------
     # The database always keeps the full record; these only affect what is
     # shown to the editor, to keep low-value "nothingburgers" out of the way.
