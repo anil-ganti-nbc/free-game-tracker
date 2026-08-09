@@ -15,7 +15,11 @@ services:
     environment:
       NEWSROOM_DATABASE_PATH: /app/data/newsroom.db
       NEWSROOM_REPORTS_DIR: /app/data/reports
-      NEWSROOM_DISCORD_WEBHOOK_URL: ${NEWSROOM_DISCORD_WEBHOOK_URL:?production requires a real webhook or explicit empty value}
+      # Not enforced with `:?` here on purpose - that syntax is interpolated
+      # per-file before the staging overlay's merge, so it fires even when
+      # docker-compose.staging.yml is about to override this key to "".
+      # Enforcement lives in RELEASE_RUNBOOK.md's promotion checklist instead.
+      NEWSROOM_DISCORD_WEBHOOK_URL: ${NEWSROOM_DISCORD_WEBHOOK_URL:-}
       NEWSROOM_RELEASE_CHANNEL: production
       NEWSROOM_MIN_CONFIDENCE: ${NEWSROOM_MIN_CONFIDENCE:-0}
       NEWSROOM_REQUIRE_KNOWN_PRICE: ${NEWSROOM_REQUIRE_KNOWN_PRICE:-false}
