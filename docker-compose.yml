@@ -1,13 +1,15 @@
 # Free Game Tracker — production. One-shot job, no public ports, no Docker
 # socket. Invoke with: docker compose run --rm free-game-tracker run
-# IMAGE_TAG must be an immutable commit SHA or release tag — never rely on
-# a bare `:latest` as the only deployable reference.
+# IMAGE_TAG must be an immutable deployment identifier (see
+# scripts/make_snapshot.sh and ai/handoff/RELEASE_RUNBOOK.md) - never rely on
+# a bare `:latest` as the only deployable reference. GitHub is not in use for
+# this project yet, so this is not a git commit SHA.
 services:
   free-game-tracker:
     build:
       context: .
       dockerfile: Dockerfile
-    image: free-game-tracker:${IMAGE_TAG:?set IMAGE_TAG to a commit SHA or release tag}
+    image: free-game-tracker:${IMAGE_TAG:?set IMAGE_TAG to a deployment identifier, e.g. free-game-tracker_2026-08-09_hetzner-01}
     container_name: free-game-tracker-production
     restart: "no"
     environment:

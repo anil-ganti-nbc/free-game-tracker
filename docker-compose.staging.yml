@@ -6,7 +6,7 @@
 #          run --rm free-game-tracker run --dry-run
 services:
   free-game-tracker:
-    image: free-game-tracker:${IMAGE_TAG:?set IMAGE_TAG to the candidate commit SHA}
+    image: free-game-tracker:${IMAGE_TAG:?set IMAGE_TAG to the candidate deployment identifier}
     container_name: free-game-tracker-staging
     environment:
       NEWSROOM_DATABASE_PATH: /app/data/newsroom.db

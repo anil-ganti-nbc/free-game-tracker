@@ -33,3 +33,19 @@
    only. Cloud host selection needs its own approval (provider, size, cost) before the
    remaining acceptance-gate items (external schedule over real time, reboot recovery,
    real-network notification test, Tailscale) can be completed.
+
+7. **(2026-08-09) GitHub struck from this migration phase entirely.** The user
+   corrected an assumption baked into the original brief: GitHub is not actually in use
+   for these projects yet. Replaced commit-SHA-based deployment identity with an
+   explicit local-source-snapshot model: `scripts/make_snapshot.sh` produces an
+   immutable, hashed tarball (`snapshots/<deployment-id>.tar.gz` + `.sha256`) that
+   becomes the preserved, untouched baseline for each deployed version, independent of
+   git. Deployment identifiers now look like `free-game-tracker_2026-08-09_hetzner-01`,
+   not a git ref. A local git repository does still exist on this machine (created
+   under the original, since-corrected instructions) and is kept as a convenient local
+   diff/history tool, but it is explicitly not the provenance mechanism, was never
+   pushed anywhere, and nothing in the release process depends on it. When GitHub is
+   introduced later, these snapshots establish provenance for the initial import.
+   `deploy/run.sh` now reads `.deployed-id` (was `.deployed-tag`). Target environment
+   for the immediate term is also now the temporary Hetzner host, not the NAS directly
+   — `NAS_DEPLOYMENT.md` remains for when that later migration happens.
