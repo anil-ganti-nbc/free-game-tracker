@@ -1,5 +1,7 @@
 # Newsroom
 
+> Status: Production ready
+
 An internal newsroom sensor. Version 0.1 does exactly one thing: **detect newly
 free PC games** on the Epic Games Store, Steam (100%-off only), and GOG.
 
