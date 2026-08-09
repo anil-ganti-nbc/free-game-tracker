@@ -20,3 +20,14 @@ venv/
 
 # Backend-managed authoritative state (never version-controlled)
 newsroom.db
+
+# Local AI-tool config, not project content
+.claude/
+
+# Debug/scratch artifacts from prior investigation sessions
+debug_rss.log
+slider_*.png
+dashboard_full.png
+
+# Deployment snapshot tarballs - large generated build artifacts, not source
+snapshots/
