@@ -10,8 +10,17 @@ config = context.config
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
+#
+# disable_existing_loggers=False is required here: fileConfig's default is
+# True, which silently disables every logger created before this call --
+# including every newsroom.* module logger (all created at import time via
+# logging.getLogger(__name__), well before init_db() runs this). Without
+# this, application log output (source failures, Discord delivery
+# accounting, etc.) is silently swallowed for the rest of the process after
+# the first init_db() call -- discovered while verifying the delivery-
+# summary logging added in the subscription-notification hardening pass.
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 # add your model's MetaData object here
 # for 'autogenerate' support

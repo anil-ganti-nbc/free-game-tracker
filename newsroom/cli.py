@@ -81,6 +81,14 @@ def _configure_logging(verbose: bool = False) -> None:
         level=level,
         format="%(asctime)s  %(levelname)-7s  %(name)s  %(message)s",
     )
+    # alembic/env.py's fileConfig(...) — run on every init_db() call, i.e.
+    # every command — resets the root logger's level to alembic.ini's
+    # [logger_root] (WARNING), which would otherwise silently filter out
+    # every newsroom.* INFO log (source failures, Discord delivery
+    # accounting, etc.) for the rest of the process. Giving the "newsroom"
+    # namespace its own explicit level means it's found before root during
+    # the effective-level lookup, independent of what alembic does to root.
+    logging.getLogger("newsroom").setLevel(level)
 
 
 def _fetch_all_sources(selected: list[str] | None) -> tuple[list[NewsEvent], set[str]]:

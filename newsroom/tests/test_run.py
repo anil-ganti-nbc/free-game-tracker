@@ -42,6 +42,30 @@ def _event(url: str) -> NewsEvent:
     )
 
 
+def test_configure_logging_survives_init_db(temp_env: Path) -> None:
+    """Regression: alembic/env.py's fileConfig() (triggered by every
+    init_db() call, i.e. every CLI command) defaults to disabling every
+    previously-created logger and resets the root logger's level to
+    alembic.ini's WARNING. Either one would silently swallow every
+    newsroom.* INFO log -- source failures, Discord delivery accounting, run
+    summaries -- for the rest of the process. Found while verifying the
+    delivery-summary logging added in the subscription-notification
+    hardening pass: the log line existed in code but never reached output.
+    """
+    import logging
+
+    cli._configure_logging()
+    logger = logging.getLogger("newsroom.cli")
+
+    # Real commands configure logging, then call init_db() -- reproduce that
+    # ordering (temp_env's own setup already called init_db() once before
+    # this test body runs, which is exactly the scenario being guarded).
+    database.init_db()
+
+    assert not logger.disabled
+    assert logger.isEnabledFor(logging.INFO)
+
+
 def test_first_run_reports_all_new_and_persists(temp_env: Path) -> None:
     now = datetime(2026, 7, 19, 18, 30, tzinfo=UTC)
     diff, markdown_path, json_path = cli._execute_run([_event("a"), _event("b")], now)
