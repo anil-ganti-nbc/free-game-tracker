@@ -2,8 +2,14 @@ import xml.etree.ElementTree as ET
 from datetime import UTC, datetime
 from pathlib import Path
 
-from newsroom.models import AccessModel, EventType, OwnershipModel
-from newsroom.sources.playstation_plus import _extract_games_from_html, _parse_dates_from_text
+import pytest
+
+from newsroom.models import AccessModel, Category, EventType, OwnershipModel
+from newsroom.sources.playstation_plus import (
+    _detect_standalone_access_event,
+    _extract_games_from_html,
+    _parse_dates_from_text,
+)
 
 FIXTURE_PATH = Path(__file__).resolve().parent / "fixtures" / "psblog_feed.xml"
 
@@ -435,3 +441,222 @@ def test_all_malformed_pubdates() -> None:
     with patch("newsroom.sources.playstation_plus.fetch_text", return_value=xml_all_malformed):
         events = fetch_events()
         assert len(events) == 0
+
+
+# --- Standalone-article access-event detection ------------------------------
+#
+# Regression coverage for the Helldivers 2 incident. Deliberately uses a
+# different game, date, and URL than the real incident throughout, so the
+# coverage protects the *class* of miss (a same-day standalone article whose
+# headline doesn't scream "PS Plus", carrying a real access-change event
+# buried in otherwise unrelated content) rather than one hardcoded title.
+
+_STANDALONE_POSITIVE_HTML = """
+<p>This major content update introduces a new final boss encounter and
+several quality-of-life improvements requested by the community.</p>
+<p>Ghost Runner 3 enters the PlayStation Plus Game Catalog today, available to
+PlayStation Plus Extra and Premium members starting August 20.</p>
+<p>Fight through neon-lit corridors and discover the truth behind the Dharma
+Tower.</p>
+"""
+
+_STANDALONE_PUB_DATE = datetime(2026, 8, 20, 18, 0, tzinfo=UTC)
+_STANDALONE_URL = "https://blog.playstation.com/2026/08/20/ghost-runner-3-boss-update/"
+
+
+def test_standalone_detects_access_event_from_body_not_headline() -> None:
+    """The headline alone gives no hint this article carries a PS Plus event."""
+    event = _detect_standalone_access_event(
+        "Ghost Runner 3 Update Adds New Boss, Out Now",
+        _STANDALONE_POSITIVE_HTML,
+        _STANDALONE_PUB_DATE,
+        _STANDALONE_URL,
+    )
+    assert event is not None
+    assert event.title == "Ghost Runner 3"
+    assert event.category == Category.SUBSCRIPTION
+    assert event.event_type == EventType.CATALOG_ADDITION
+    assert event.access_model == AccessModel.SUBSCRIPTION_CATALOG
+    assert event.ownership_model == OwnershipModel.ACCESSIBLE_WHILE_IN_CATALOG
+    assert set(event.tiers) == {"extra", "premium"}
+    assert event.available_from == datetime(2026, 8, 20, tzinfo=UTC)
+    assert event.url == _STANDALONE_URL
+
+
+def test_standalone_detects_monthly_claim_variant() -> None:
+    html = """
+    <p>Word Weave joins the PlayStation Plus Monthly Games lineup today,
+    available to PlayStation Plus Essential members starting today.</p>
+    """
+    event = _detect_standalone_access_event(
+        "Word Weave Launch Trailer Released",
+        html,
+        _STANDALONE_PUB_DATE,
+        _STANDALONE_URL,
+    )
+    assert event is not None
+    assert event.event_type == EventType.CLAIMABLE_GAME
+    assert event.access_model == AccessModel.CLAIMABLE
+    assert event.ownership_model == OwnershipModel.PERMANENT_WHILE_ACCOUNT_EXISTS
+
+
+_STANDALONE_NEGATIVE_CASES = {
+    "casual_multiplayer_requirement": """
+        <p>Online multiplayer for Neon Squad requires PlayStation Plus to play
+        with friends across the galaxy.</p>
+    """,
+    "marketing_discount_copy": """
+        <p>This week only, enjoy a discount for PlayStation Plus members: save
+        20% on select titles storewide.</p>
+    """,
+    "unrelated_linking_article": """
+        <p>Check out our full lineup of weekend deals, and don't forget you
+        can browse the PlayStation Plus page for more offers.</p>
+    """,
+    "update_article_mentioning_ps_plus_without_new_access": """
+        <p>Patch 2.1 for Dream Weavers fixes several bugs reported by
+        PlayStation Plus members in the community forums.</p>
+    """,
+    "existing_membership_referenced_without_new_event": """
+        <p>Thanks for being a PlayStation Plus Extra member -- here's what's
+        still available in the Game Catalog this week.</p>
+    """,
+}
+
+
+@pytest.mark.parametrize(
+    "html", _STANDALONE_NEGATIVE_CASES.values(), ids=_STANDALONE_NEGATIVE_CASES.keys()
+)
+def test_standalone_rejects_false_positives(html: str) -> None:
+    event = _detect_standalone_access_event(
+        "Some Unrelated Headline",
+        html,
+        _STANDALONE_PUB_DATE,
+        _STANDALONE_URL,
+    )
+    assert event is None
+
+
+def test_standalone_returns_none_without_playstation_plus_mention() -> None:
+    html = "<p>Just a normal article about a game update, nothing subscription-related.</p>"
+    assert (
+        _detect_standalone_access_event("Headline", html, _STANDALONE_PUB_DATE, _STANDALONE_URL)
+        is None
+    )
+
+
+def test_standalone_returns_none_without_a_resolvable_tier() -> None:
+    """A qualifying sentence with no tier keyword shouldn't guess a tier."""
+    html = "<p>Nova Drift joins PlayStation Plus starting today.</p>"
+    assert (
+        _detect_standalone_access_event("Headline", html, _STANDALONE_PUB_DATE, _STANDALONE_URL)
+        is None
+    )
+
+
+# --- fetch_events(): the full discovery -> classification path --------------
+#
+# These exercise fetch_events() itself (not just the helper) so the coverage
+# proves the complete relevant path: two feeds fetched, a non-roundup
+# candidate inspected for content, and a correctly-shaped event produced.
+
+
+def _rss(*items_xml: str) -> str:
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>'
+        + "".join(items_xml)
+        + "</channel></rss>"
+    )
+
+
+def _rss_item(title: str, link: str, pub_date: str, body_html: str) -> str:
+    return f"""
+    <item>
+        <title>{title}</title>
+        <pubDate>{pub_date}</pubDate>
+        <link>{link}</link>
+        <content:encoded xmlns:content="http://purl.org/rss/1.0/modules/content/">
+            <![CDATA[{body_html}]]>
+        </content:encoded>
+    </item>
+    """
+
+
+def test_fetch_events_finds_standalone_article_absent_from_category_feed() -> None:
+    """The exact shape of the Helldivers 2 miss: a standalone article that is
+    never an item in the category/ps-plus feed, only in the general feed, with
+    a headline that doesn't contain any roundup keyword. Pre-fix, fetch_events
+    only polled the category feed and title-gated on roundup keywords, so this
+    candidate would never have been fetched at all -- this test would have
+    failed against that implementation.
+    """
+    category_feed = _rss(
+        _rss_item(
+            "PlayStation Plus Monthly Games for September",
+            "http://category-item",
+            "Mon, 01 Sep 2026 12:00:00 +0000",
+            "<p>available today</p><strong>Unrelated Game | PS5</strong>",
+        )
+    )
+    general_feed = _rss(
+        _rss_item(
+            "Ghost Runner 3 Update Adds New Boss, Out Now",
+            _STANDALONE_URL,
+            "Thu, 20 Aug 2026 18:00:00 +0000",
+            _STANDALONE_POSITIVE_HTML,
+        )
+    )
+
+    def fake_fetch_text(url: str) -> str:
+        if "category/ps-plus" in url:
+            return category_feed
+        return general_feed
+
+    with (
+        patch("newsroom.sources.playstation_plus.fetch_text", side_effect=fake_fetch_text),
+        patch("newsroom.sources.playstation_plus.datetime") as mock_dt,
+    ):
+        mock_dt.now.return_value = datetime(2026, 8, 21, tzinfo=UTC)
+        mock_dt.side_effect = lambda *a, **kw: datetime(*a, **kw)
+        events = fetch_events()
+
+    ghost_runner = next((e for e in events if e.title == "Ghost Runner 3"), None)
+    assert ghost_runner is not None
+    assert ghost_runner.event_type == EventType.CATALOG_ADDITION
+    assert ghost_runner.category == Category.SUBSCRIPTION
+
+
+def test_fetch_events_collapses_same_game_reported_by_both_feeds() -> None:
+    """A same-day standalone article can describe exactly what a roundup
+    published the same day already covers -- must produce one event, not two.
+    """
+    shared_pub_date = "Thu, 20 Aug 2026 18:00:00 +0000"
+    category_feed = _rss(
+        _rss_item(
+            "PlayStation Plus Game Catalog for August",
+            "http://roundup-item",
+            shared_pub_date,
+            "<h2>PlayStation Plus Extra and Premium</h2>"
+            "<p>available from August 20</p>"
+            "<strong>Ghost Runner 3 | PS5</strong>",
+        )
+    )
+    general_feed = _rss(
+        _rss_item(
+            "Ghost Runner 3 Update Adds New Boss, Out Now",
+            _STANDALONE_URL,
+            shared_pub_date,
+            _STANDALONE_POSITIVE_HTML,
+        )
+    )
+
+    def fake_fetch_text(url: str) -> str:
+        if "category/ps-plus" in url:
+            return category_feed
+        return general_feed
+
+    with patch("newsroom.sources.playstation_plus.fetch_text", side_effect=fake_fetch_text):
+        events = fetch_events()
+
+    matches = [e for e in events if "Ghost Runner 3" in e.title]
+    assert len(matches) == 1

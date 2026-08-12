@@ -64,6 +64,13 @@ def build_discord_payload(
 ) -> dict[str, Any] | None:
     """Build the webhook JSON for a batch of newly free games.
 
+    Only ``Category.GAME_PROMOTION`` events are eligible here — this embed's
+    copy and fields (price, "N free games detected") describe ownership, which
+    would misdescribe subscription access. ``Category.SUBSCRIPTION`` events
+    (PlayStation Plus, Xbox Game Pass, GeForce Now) go through
+    :func:`build_subscription_payload` / :func:`notify_new_subscription_events`
+    instead.
+
     Args:
         events: The newly free games to announce.
         min_confidence: Drop events scoring below this before building.
@@ -147,6 +154,107 @@ def notify_new_breakouts(
     posted = post_discord(url, payload, client=client)
     if posted:
         logger.info("Discord: announced %d breakout release(s)", len(payload["embeds"]))
+    return posted
+
+
+#: Human-readable labels for the subscription-event embed. Deliberately
+#: separate from PromotionType/EventType's storage values so the Discord copy
+#: can read naturally without a source needing to know about presentation.
+_EVENT_TYPE_LABELS = {
+    "catalog_addition": "Catalog addition",
+    "catalog_removal": "Catalog removal — last chance to play",
+    "claimable_game": "Monthly claimable game",
+    "trial_added": "Limited trial",
+}
+
+
+def _subscription_embed(event: NewsEvent) -> dict[str, Any]:
+    """Build one Discord embed for a subscription-access event.
+
+    Never says "free" or "Price: $X -> Free" — subscription access is not
+    ownership, and conflating the two is the exact inaccuracy this embed
+    exists to avoid. See docs/SUBSCRIPTION_EVENT_MODEL.md.
+    """
+    service_label = (event.service or "subscription").replace("_", " ").title()
+    event_label = _EVENT_TYPE_LABELS.get(
+        event.event_type.value if event.event_type else "", "Subscription access change"
+    )
+    tier_label = " / ".join(t.title() for t in event.tiers) if event.tiers else "unknown"
+    availability = event.available_from.date().isoformat() if event.available_from else "unknown"
+
+    fields = [
+        {"name": "Service", "value": service_label, "inline": True},
+        {"name": "Event", "value": event_label, "inline": True},
+        {"name": "Tier", "value": tier_label, "inline": True},
+        {"name": "Availability", "value": availability, "inline": True},
+        {"name": "Access type", "value": "Subscription access (not ownership)", "inline": True},
+    ]
+
+    return {
+        "title": event.title[:256],
+        "url": event.url,
+        "color": _COLOR_HIGH if event.confidence.score >= 90 else _COLOR_PARTIAL,
+        "fields": fields,
+        "footer": {"text": ("Reason: " + "; ".join(event.confidence.reasons))[:2048]},
+    }
+
+
+def build_subscription_payload(
+    events: list[NewsEvent], min_confidence: int = 0
+) -> dict[str, Any] | None:
+    """Build the webhook JSON for newly detected subscription-access events.
+
+    Kept separate from :func:`build_discord_payload` on purpose: that one's
+    copy ("N new free game(s) detected") and price-based fields would
+    misdescribe subscription access as ownership. This function is the
+    subscription-category counterpart, mirroring the existing breakout/deal
+    payload builders.
+    """
+    from newsroom.models import Category
+
+    eligible = [
+        e
+        for e in events
+        if e.confidence.score >= min_confidence and e.category == Category.SUBSCRIPTION
+    ]
+    if not eligible:
+        return None
+
+    total = len(eligible)
+    shown = eligible[:MAX_EMBEDS]
+    content = f"{total} new subscription access event{'s' if total != 1 else ''} detected."
+    if total > MAX_EMBEDS:
+        content += f" Showing first {MAX_EMBEDS}."
+
+    return {"content": content, "embeds": [_subscription_embed(e) for e in shown]}
+
+
+def notify_new_subscription_events(
+    diff: RunDiff,
+    *,
+    webhook_url: str | None = None,
+    min_confidence: int = 0,
+    client: httpx.Client | None = None,
+) -> bool:
+    """Announce this run's newly detected subscription-access events, if configured.
+
+    A no-op returning ``False`` when no webhook is set or nothing qualifies.
+    Mirrors :func:`notify_new_giveaways`, but for ``Category.SUBSCRIPTION``
+    events (PlayStation Plus, Xbox Game Pass, GeForce Now) which that function
+    excludes on purpose — see :func:`build_discord_payload`.
+    """
+    url = webhook_url if webhook_url is not None else settings.discord_webhook_url
+    if not url:
+        logger.debug("No Discord webhook configured; skipping notification.")
+        return False
+
+    payload = build_subscription_payload(diff.new, min_confidence=min_confidence)
+    if payload is None:
+        return False
+
+    posted = post_discord(url, payload, client=client)
+    if posted:
+        logger.info("Discord: announced %d subscription access event(s)", len(payload["embeds"]))
     return posted
 
 

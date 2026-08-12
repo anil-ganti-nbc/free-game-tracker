@@ -35,6 +35,7 @@ from newsroom.notify import (
     notify_new_breakouts,
     notify_new_deals,
     notify_new_giveaways,
+    notify_new_subscription_events,
 )
 from newsroom.quality import filter_events
 from newsroom.report import prune_old_reports, write_reports
@@ -322,6 +323,7 @@ def run_pipeline(
     )
     if persist and do_notify:
         notify_new_giveaways(diff, webhook_url=settings.discord_webhook_url)
+        notify_new_subscription_events(diff, webhook_url=settings.discord_webhook_url)
 
     breakouts_new = _run_breakouts(generated_at, persist, do_notify)
     deals_new = _run_deals(persist, do_notify)
