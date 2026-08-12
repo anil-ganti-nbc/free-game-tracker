@@ -23,6 +23,8 @@ from newsroom.models import (
     SteamDeal,
 )
 from newsroom.notify import (
+    CATEGORY_NOTIFIERS,
+    DeliveryOutcome,
     build_breakout_payload,
     build_deal_payload,
     build_discord_payload,
@@ -100,7 +102,8 @@ def test_notify_skips_when_no_webhook(monkeypatch: pytest.MonkeyPatch) -> None:
 
     client = httpx.Client(transport=httpx.MockTransport(handler))
     result = notify_new_giveaways(RunDiff(new=[_event()]), webhook_url=None, client=client)
-    assert result is False
+    assert not result
+    assert result.outcome is DeliveryOutcome.WEBHOOK_NOT_CONFIGURED
     assert calls == []
 
 
@@ -113,7 +116,9 @@ def test_notify_posts_new_giveaways() -> None:
 
     client = httpx.Client(transport=httpx.MockTransport(handler))
     result = notify_new_giveaways(RunDiff(new=[_event()]), webhook_url=WEBHOOK, client=client)
-    assert result is True
+    assert result
+    assert result.outcome is DeliveryOutcome.POSTED
+    assert result.detected == result.eligible == result.posted == 1
     assert len(seen) == 1
     assert seen[0]["embeds"][0]["title"] == "Sample Free Game"
 
@@ -269,7 +274,8 @@ def test_notify_subscription_events_skips_when_no_webhook(monkeypatch: pytest.Mo
     result = notify_new_subscription_events(
         RunDiff(new=[_sub_event()]), webhook_url=None, client=client
     )
-    assert result is False
+    assert not result
+    assert result.outcome is DeliveryOutcome.WEBHOOK_NOT_CONFIGURED
     assert calls == []
 
 
@@ -284,7 +290,9 @@ def test_notify_posts_new_subscription_events() -> None:
     client = httpx.Client(transport=httpx.MockTransport(handler))
     diff = RunDiff(new=[_sub_event("Major Paid Game")])
     result = notify_new_subscription_events(diff, webhook_url=WEBHOOK, client=client)
-    assert result is True
+    assert result
+    assert result.outcome is DeliveryOutcome.POSTED
+    assert result.detected == result.eligible == result.posted == 1
     assert len(seen) == 1
     assert seen[0]["embeds"][0]["title"] == "Major Paid Game"
 
@@ -301,3 +309,91 @@ def test_notify_subscription_events_does_not_duplicate_giveaways() -> None:
     assert [e["title"] for e in giveaway_payload["embeds"]] == ["Epic Giveaway"]
     assert subscription_payload is not None
     assert [e["title"] for e in subscription_payload["embeds"]] == ["PS Plus Game"]
+
+
+# --- Behavioural guarantees (post-incident hardening pass) -----------------
+#
+# Guarantees A and B (a valid GAME_PROMOTION/SUBSCRIPTION event reaches its
+# respective Discord path) are already proven by test_notify_posts_new_
+# giveaways and test_notify_posts_new_subscription_events above. Guarantee D
+# (an actionable source category cannot silently lack a notification path)
+# is proven in test_category_coverage.py. This section covers C, E, and F.
+
+
+def test_guarantee_c_subscription_embed_never_uses_ownership_language() -> None:
+    """Guarantee C: no "$X -> Free", "free to keep", or bare "Free" anywhere
+    in a subscription payload -- only catalogue/subscription access language.
+    """
+    payload = build_subscription_payload([_sub_event("Expensive Paid Game")])
+    assert payload is not None
+    embed = payload["embeds"][0]
+    field_values = {f["name"]: f["value"] for f in embed["fields"]}
+    rendered = " ".join(str(v) for v in field_values.values()) + payload["content"] + embed["title"]
+
+    banned_phrases = ["free to keep", "-> free", "→ free", "$", "permanently free"]
+    lowered = rendered.lower()
+    for phrase in banned_phrases:
+        assert phrase not in lowered, f"subscription embed leaked ownership language: {phrase!r}"
+    assert "free" not in lowered  # catches a bare "Free" too, not just the phrases above
+    assert "Price" not in field_values
+    assert field_values["Access type"] == "Subscription access (not ownership)"
+
+
+def test_guarantee_e_delivery_failure_distinguishable_from_zero_event_run() -> None:
+    """Guarantee E: both a Discord failure and a quiet zero-event run return
+    a falsy DeliveryResult, but their .outcome must differ -- an operator (or
+    a script grepping logs) needs to tell "nothing happened" apart from
+    "something happened and it broke"."""
+
+    def failing_handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(500)
+
+    failing_client = httpx.Client(transport=httpx.MockTransport(failing_handler))
+    failure_result = notify_new_subscription_events(
+        RunDiff(new=[_sub_event("Broken Delivery Game")]),
+        webhook_url=WEBHOOK,
+        client=failing_client,
+    )
+    zero_result = notify_new_subscription_events(
+        RunDiff(new=[]), webhook_url=WEBHOOK, client=failing_client
+    )
+
+    assert not failure_result
+    assert not zero_result
+    assert failure_result.outcome is DeliveryOutcome.DELIVERY_FAILED
+    assert zero_result.outcome is DeliveryOutcome.NO_EVENTS
+    assert failure_result.outcome != zero_result.outcome
+    assert failure_result.eligible == 1
+    assert failure_result.posted == 0
+
+
+def test_guarantee_f_intentional_suppression_distinguishable_from_failure() -> None:
+    """Guarantee F: a low-confidence event correctly held back must not look
+    the same, in outcome, as an eligible event that failed to post."""
+    ok_client = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(204)))
+    suppressed_result = notify_new_subscription_events(
+        RunDiff(new=[_sub_event("Low Confidence Game", score=10)]),
+        webhook_url=WEBHOOK,
+        min_confidence=50,
+        client=ok_client,
+    )
+    assert not suppressed_result
+    assert suppressed_result.outcome is DeliveryOutcome.NO_ELIGIBLE_EVENTS
+    assert suppressed_result.detected == 1
+    assert suppressed_result.eligible == 0
+
+    failing_client = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(500)))
+    failure_result = notify_new_subscription_events(
+        RunDiff(new=[_sub_event("Failing Game")]), webhook_url=WEBHOOK, client=failing_client
+    )
+    assert not failure_result
+    assert failure_result.outcome is DeliveryOutcome.DELIVERY_FAILED
+
+    assert suppressed_result.outcome != failure_result.outcome
+
+
+def test_category_notifiers_registry_matches_public_builders() -> None:
+    """Guarantee D (behavioural half): the registry the coverage test relies
+    on actually points at the real, currently-imported builder functions."""
+    assert CATEGORY_NOTIFIERS[Category.GAME_PROMOTION] is build_discord_payload
+    assert CATEGORY_NOTIFIERS[Category.SUBSCRIPTION] is build_subscription_payload

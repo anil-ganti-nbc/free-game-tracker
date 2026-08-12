@@ -32,6 +32,8 @@ from newsroom.database import (
 )
 from newsroom.models import NewsEvent, UpcomingGame
 from newsroom.notify import (
+    DeliveryOutcome,
+    DeliveryResult,
     notify_new_breakouts,
     notify_new_deals,
     notify_new_giveaways,
@@ -265,7 +267,8 @@ def _run_breakouts(now: datetime, persist: bool, do_notify: bool) -> int:
     if persist:
         sync_new_releases(current)
         if do_notify and new_ones:
-            notify_new_breakouts(new_ones, webhook_url=settings.discord_webhook_url)
+            posted = notify_new_breakouts(new_ones, webhook_url=settings.discord_webhook_url)
+            logger.info("Delivery: breakout detected=%d posted=%s", len(new_ones), posted)
     return len(new_ones)
 
 
@@ -297,8 +300,63 @@ def _run_deals(persist: bool, do_notify: bool) -> int:
     if persist:
         sync_deals(current)
         if do_notify and new_ones:
-            notify_new_deals(new_ones, webhook_url=settings.discord_webhook_url)
+            posted = notify_new_deals(new_ones, webhook_url=settings.discord_webhook_url)
+            logger.info("Delivery: deal detected=%d posted=%s", len(new_ones), posted)
     return len(new_ones)
+
+
+#: Outcomes that mean "this was eligible but did not reach Discord due to an
+#: internal problem" — as opposed to "correctly held back" (no webhook, or
+#: nothing eligible). Both count toward the summary's discord_failed total.
+_FAILURE_OUTCOMES = (DeliveryOutcome.DELIVERY_FAILED, DeliveryOutcome.PAYLOAD_CONSTRUCTION_FAILED)
+
+
+def _log_delivery_summary(results: list[DeliveryResult]) -> dict[str, int]:
+    """Log one run's Discord delivery accounting and return it as a dict.
+
+    This is the fix for how the subscription-notification incident stayed
+    invisible: discovery, persistence, and source health all looked healthy
+    while Discord silently received nothing, and nothing anywhere answered
+    "how many of what we found actually reached Discord?". See
+    SUBSCRIPTION_NOTIFICATION_INCIDENT_REPORT.md.
+
+    A zero-event run (detected=0 everywhere) logs the same shape as any other
+    run — it is not an error, just a quiet one, and stays visually
+    indistinguishable from "nothing to see here" by design. What's supposed
+    to stand out is a mismatch: eligible > 0 with posted < eligible.
+    """
+    detected = sum(r.detected for r in results)
+    eligible = sum(r.eligible for r in results)
+    posted = sum(r.posted for r in results)
+    suppressed = sum(r.detected - r.eligible for r in results)
+    failed = sum(r.eligible - r.posted for r in results if r.outcome in _FAILURE_OUTCOMES)
+
+    logger.info(
+        "Delivery summary: events_detected=%d discord_eligible=%d discord_posted=%d "
+        "discord_suppressed=%d discord_failed=%d",
+        detected,
+        eligible,
+        posted,
+        suppressed,
+        failed,
+    )
+    for r in results:
+        logger.info(
+            "  %s: detected=%d eligible=%d posted=%d outcome=%s",
+            r.category_label,
+            r.detected,
+            r.eligible,
+            r.posted,
+            r.outcome.value,
+        )
+
+    return {
+        "discord_detected": detected,
+        "discord_eligible": eligible,
+        "discord_posted": posted,
+        "discord_suppressed": suppressed,
+        "discord_failed": failed,
+    }
 
 
 def run_pipeline(
@@ -321,9 +379,13 @@ def run_pipeline(
         upcoming=upcoming,
         successful_sources=successful_sources,
     )
+    delivery: dict[str, int] = {}
     if persist and do_notify:
-        notify_new_giveaways(diff, webhook_url=settings.discord_webhook_url)
-        notify_new_subscription_events(diff, webhook_url=settings.discord_webhook_url)
+        giveaway_result = notify_new_giveaways(diff, webhook_url=settings.discord_webhook_url)
+        subscription_result = notify_new_subscription_events(
+            diff, webhook_url=settings.discord_webhook_url
+        )
+        delivery = _log_delivery_summary([giveaway_result, subscription_result])
 
     breakouts_new = _run_breakouts(generated_at, persist, do_notify)
     deals_new = _run_deals(persist, do_notify)
@@ -339,6 +401,7 @@ def run_pipeline(
         "markdown_path": str(markdown_path),
         "json_path": str(json_path),
         "stale": stale,
+        **delivery,
     }
 
 

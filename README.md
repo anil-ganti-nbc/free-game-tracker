@@ -92,6 +92,24 @@ Reports land in `reports/` as timestamped `report-<stamp>.{md,json}`, plus
 
 ## Scheduling (Windows, hourly)
 
+**This is for a local/manual/dev instance.** As of the Hetzner cloud migration
+(2026-08-09), canonical production runs on Hetzner via `deploy/` + cron
+against its own database and the real Discord webhook — see
+`ai/handoff/RELEASE_RUNBOOK.md` and `ai/handoff/DEPLOYMENT_LEDGER.md`. Windows
+scheduling was never migrated to point at that production state and is not
+kept in sync with it; a stale local `newsroom.db` / `status` output on
+Windows reflects a dev checkout, not a production incident. **Do not register
+a Windows scheduled task pointed at the same Discord webhook Hetzner uses —
+both would independently treat the same real-world event as "new" and post
+it twice.** If you want a local scheduled run for testing, point
+`NEWSROOM_DISCORD_WEBHOOK_URL` at a separate/staging webhook or leave it
+unset.
+
+(Two scheduler scripts exist from before this was clarified —
+`scripts/register-task.ps1` and the newer `Install-HourlyTask.ps1` in the
+project root — functionally near-identical, neither currently registered.
+See `ai/handoff/KNOWN_ISSUES.md`.)
+
 Register a scheduled task once, from the project folder:
 
 ```powershell

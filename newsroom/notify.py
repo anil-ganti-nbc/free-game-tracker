@@ -17,13 +17,16 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable
+from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
 
 import httpx
 
 from newsroom.compare import RunDiff
 from newsroom.config import settings
-from newsroom.models import NewRelease, NewsEvent, SteamDeal
+from newsroom.models import Category, NewRelease, NewsEvent, SteamDeal
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +40,44 @@ _MAX_RETRY_WAIT_SECONDS = 30.0
 
 _COLOR_HIGH = 0x2ECC71  # green — full-confidence detection
 _COLOR_PARTIAL = 0xF1C40F  # amber — something (MSRP or end date) was missing
+
+
+class DeliveryOutcome(StrEnum):
+    """Terminal disposition of one category's Discord delivery attempt.
+
+    A plain bool return conflates "nothing to report", "correctly held
+    back", "misconfigured", and "actually failed" into one value — that
+    conflation is exactly why the subscription-notification incident stayed
+    invisible (see SUBSCRIPTION_NOTIFICATION_INCIDENT_REPORT.md). This makes
+    the distinction observable without inventing a larger result hierarchy.
+    """
+
+    POSTED = "posted"
+    NO_EVENTS = "no_events"
+    NO_ELIGIBLE_EVENTS = "no_eligible_events"
+    WEBHOOK_NOT_CONFIGURED = "webhook_not_configured"
+    PAYLOAD_CONSTRUCTION_FAILED = "payload_construction_failed"
+    DELIVERY_FAILED = "delivery_failed"
+
+
+@dataclass(frozen=True)
+class DeliveryResult:
+    """One category's Discord delivery accounting for a single run.
+
+    ``__bool__`` mirrors the old plain-``bool`` return (True only when
+    something was actually posted), so existing truthy checks keep working;
+    the richer fields are what let a run log a real delivery summary instead
+    of a single ambiguous flag.
+    """
+
+    category_label: str
+    detected: int
+    eligible: int
+    posted: int
+    outcome: DeliveryOutcome
+
+    def __bool__(self) -> bool:
+        return self.outcome == DeliveryOutcome.POSTED
 
 
 def _embed(event: NewsEvent) -> dict[str, Any]:
@@ -59,6 +100,18 @@ def _embed(event: NewsEvent) -> dict[str, Any]:
     }
 
 
+def _eligible_game_promotion_events(
+    events: list[NewsEvent], min_confidence: int
+) -> list[NewsEvent]:
+    """Events eligible for the giveaway-shaped embed — used by both the
+    payload builder and the delivery accounting, so the two can't drift."""
+    return [
+        e
+        for e in events
+        if e.confidence.score >= min_confidence and e.category == Category.GAME_PROMOTION
+    ]
+
+
 def build_discord_payload(
     events: list[NewsEvent], min_confidence: int = 0
 ) -> dict[str, Any] | None:
@@ -78,13 +131,7 @@ def build_discord_payload(
     Returns:
         A Discord webhook payload, or ``None`` if nothing is worth sending.
     """
-    from newsroom.models import Category
-
-    eligible = [
-        e
-        for e in events
-        if e.confidence.score >= min_confidence and e.category == Category.GAME_PROMOTION
-    ]
+    eligible = _eligible_game_promotion_events(events, min_confidence)
     if not eligible:
         return None
 
@@ -147,6 +194,7 @@ def notify_new_breakouts(
     """Announce newly detected breakout releases to Discord, if configured."""
     url = webhook_url if webhook_url is not None else settings.discord_webhook_url
     if not url:
+        logger.debug("No Discord webhook configured; skipping notification.")
         return False
     payload = build_breakout_payload(releases)
     if payload is None:
@@ -199,6 +247,16 @@ def _subscription_embed(event: NewsEvent) -> dict[str, Any]:
     }
 
 
+def _eligible_subscription_events(events: list[NewsEvent], min_confidence: int) -> list[NewsEvent]:
+    """Events eligible for the subscription-access embed — used by both the
+    payload builder and the delivery accounting, so the two can't drift."""
+    return [
+        e
+        for e in events
+        if e.confidence.score >= min_confidence and e.category == Category.SUBSCRIPTION
+    ]
+
+
 def build_subscription_payload(
     events: list[NewsEvent], min_confidence: int = 0
 ) -> dict[str, Any] | None:
@@ -210,13 +268,7 @@ def build_subscription_payload(
     subscription-category counterpart, mirroring the existing breakout/deal
     payload builders.
     """
-    from newsroom.models import Category
-
-    eligible = [
-        e
-        for e in events
-        if e.confidence.score >= min_confidence and e.category == Category.SUBSCRIPTION
-    ]
+    eligible = _eligible_subscription_events(events, min_confidence)
     if not eligible:
         return None
 
@@ -235,27 +287,53 @@ def notify_new_subscription_events(
     webhook_url: str | None = None,
     min_confidence: int = 0,
     client: httpx.Client | None = None,
-) -> bool:
+) -> DeliveryResult:
     """Announce this run's newly detected subscription-access events, if configured.
 
-    A no-op returning ``False`` when no webhook is set or nothing qualifies.
     Mirrors :func:`notify_new_giveaways`, but for ``Category.SUBSCRIPTION``
     events (PlayStation Plus, Xbox Game Pass, GeForce Now) which that function
-    excludes on purpose — see :func:`build_discord_payload`.
+    excludes on purpose — see :func:`build_discord_payload`. Returns a
+    :class:`DeliveryResult` rather than a bare bool so a caller (or the run's
+    delivery-summary log line) can tell "nothing eligible" apart from
+    "webhook missing" apart from "Discord rejected the post" — see
+    :class:`DeliveryOutcome`.
     """
+    label = "subscription"
+    detected = len(diff.new)
+    # Eligibility is a content question (category + confidence), independent
+    # of whether a webhook happens to be configured — computing it first
+    # means "would have posted but no webhook" stays distinguishable from
+    # "nothing here qualified in the first place".
+    eligible = _eligible_subscription_events(diff.new, min_confidence)
+
     url = webhook_url if webhook_url is not None else settings.discord_webhook_url
     if not url:
         logger.debug("No Discord webhook configured; skipping notification.")
-        return False
+        return DeliveryResult(
+            label, detected, len(eligible), 0, DeliveryOutcome.WEBHOOK_NOT_CONFIGURED
+        )
 
-    payload = build_subscription_payload(diff.new, min_confidence=min_confidence)
-    if payload is None:
-        return False
+    if not eligible:
+        outcome = DeliveryOutcome.NO_EVENTS if detected == 0 else DeliveryOutcome.NO_ELIGIBLE_EVENTS
+        logger.debug(
+            "No subscription events eligible for Discord this run (detected=%d).", detected
+        )
+        return DeliveryResult(label, detected, 0, 0, outcome)
+
+    try:
+        payload = build_subscription_payload(diff.new, min_confidence=min_confidence)
+        assert payload is not None  # `eligible` just proved this is non-empty
+    except Exception:  # noqa: BLE001 - a malformed event must not break the run
+        logger.exception("Building the subscription Discord payload failed")
+        return DeliveryResult(
+            label, detected, len(eligible), 0, DeliveryOutcome.PAYLOAD_CONSTRUCTION_FAILED
+        )
 
     posted = post_discord(url, payload, client=client)
     if posted:
         logger.info("Discord: announced %d subscription access event(s)", len(payload["embeds"]))
-    return posted
+        return DeliveryResult(label, detected, len(eligible), len(eligible), DeliveryOutcome.POSTED)
+    return DeliveryResult(label, detected, len(eligible), 0, DeliveryOutcome.DELIVERY_FAILED)
 
 
 def build_deal_payload(deals: list[SteamDeal]) -> dict[str, Any] | None:
@@ -295,6 +373,7 @@ def notify_new_deals(
     """Announce newly detected Steam deals to Discord, if configured."""
     url = webhook_url if webhook_url is not None else settings.discord_webhook_url
     if not url:
+        logger.debug("No Discord webhook configured; skipping notification.")
         return False
     payload = build_deal_payload(deals)
     if payload is None:
@@ -358,10 +437,11 @@ def notify_new_giveaways(
     webhook_url: str | None = None,
     min_confidence: int = 0,
     client: httpx.Client | None = None,
-) -> bool:
+) -> DeliveryResult:
     """Announce this run's newly free games to Discord, if configured.
 
-    A no-op returning ``False`` when no webhook is set or nothing qualifies.
+    Returns a :class:`DeliveryResult` rather than a bare bool — see
+    :func:`notify_new_subscription_events` for why.
 
     Args:
         diff: The run's comparison result; only ``diff.new`` is posted.
@@ -369,16 +449,53 @@ def notify_new_giveaways(
         min_confidence: Confidence floor for what to announce.
         client: Optional httpx client (for testing / reuse).
     """
+    label = "game_promotion"
+    detected = len(diff.new)
+    # Eligibility is a content question (category + confidence), independent
+    # of whether a webhook happens to be configured — computing it first
+    # means "would have posted but no webhook" stays distinguishable from
+    # "nothing here qualified in the first place".
+    eligible = _eligible_game_promotion_events(diff.new, min_confidence)
+
     url = webhook_url if webhook_url is not None else settings.discord_webhook_url
     if not url:
         logger.debug("No Discord webhook configured; skipping notification.")
-        return False
+        return DeliveryResult(
+            label, detected, len(eligible), 0, DeliveryOutcome.WEBHOOK_NOT_CONFIGURED
+        )
 
-    payload = build_discord_payload(diff.new, min_confidence=min_confidence)
-    if payload is None:
-        return False
+    if not eligible:
+        outcome = DeliveryOutcome.NO_EVENTS if detected == 0 else DeliveryOutcome.NO_ELIGIBLE_EVENTS
+        logger.debug(
+            "No game_promotion events eligible for Discord this run (detected=%d).", detected
+        )
+        return DeliveryResult(label, detected, 0, 0, outcome)
+
+    try:
+        payload = build_discord_payload(diff.new, min_confidence=min_confidence)
+        assert payload is not None  # `eligible` just proved this is non-empty
+    except Exception:  # noqa: BLE001 - a malformed event must not break the run
+        logger.exception("Building the giveaway Discord payload failed")
+        return DeliveryResult(
+            label, detected, len(eligible), 0, DeliveryOutcome.PAYLOAD_CONSTRUCTION_FAILED
+        )
 
     posted = post_discord(url, payload, client=client)
     if posted:
         logger.info("Discord: announced %d new free game(s)", len(payload["embeds"]))
-    return posted
+        return DeliveryResult(label, detected, len(eligible), len(eligible), DeliveryOutcome.POSTED)
+    return DeliveryResult(label, detected, len(eligible), 0, DeliveryOutcome.DELIVERY_FAILED)
+
+
+#: Declares which ``NewsEvent`` category each Discord payload builder
+#: handles. This is the single authoritative registration a contributor
+#: updates when adding a new delivery path — everything else (the coverage
+#: test in test_category_coverage.py) *derives* which categories sources
+#: actually emit from newsroom.cli._SOURCES, rather than hand-listing them a
+#: second time. The subscription-notification incident happened because
+#: Category.SUBSCRIPTION was emitted for months with no entry here and
+#: nothing ever checked for that gap.
+CATEGORY_NOTIFIERS: dict[Category, Callable[[list[NewsEvent]], dict[str, Any] | None]] = {
+    Category.GAME_PROMOTION: build_discord_payload,
+    Category.SUBSCRIPTION: build_subscription_payload,
+}
