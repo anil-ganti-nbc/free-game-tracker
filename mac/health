@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Print identity and health against the isolated local dev database.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$REPO_ROOT"
+
+if [ ! -x ".venv/bin/newsroom" ]; then
+    echo "error: no .venv found. Run mac/bootstrap first." >&2
+    exit 1
+fi
+
+mkdir -p .mac-dev/reports
+export NEWSROOM_DATABASE_PATH="${REPO_ROOT}/.mac-dev/newsroom.db"
+export NEWSROOM_REPORTS_DIR="${REPO_ROOT}/.mac-dev/reports"
+unset NEWSROOM_DISCORD_WEBHOOK_URL
+
+echo "=== identity ==="
+.venv/bin/newsroom identity
+echo ""
+echo "=== health ==="
+.venv/bin/newsroom health

@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Run one detection cycle against the isolated local dev database.
+# Always uses --no-notify unless you explicitly pass --notify: this is the
+# production-sensitive Clank, so the safe behavior is the default one, not
+# something you have to remember to ask for.
+#
+# Usage:
+#   mac/dev-run                 # fetch + persist, no Discord contact at all
+#   mac/dev-run --dry-run       # fetch only, nothing persisted, nothing sent
+#   mac/dev-run --notify        # persist AND allow notification code to run --
+#                                # still safe: NEWSROOM_DISCORD_WEBHOOK_URL is
+#                                # unset below, so there is nothing to post to.
+#                                # For an end-to-end notification test, use
+#                                # mac/test-notifications-local instead.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$REPO_ROOT"
+
+if [ ! -x ".venv/bin/newsroom" ]; then
+    echo "error: no .venv found. Run mac/bootstrap first." >&2
+    exit 1
+fi
+
+mkdir -p .mac-dev/reports
+export NEWSROOM_DATABASE_PATH="${REPO_ROOT}/.mac-dev/newsroom.db"
+export NEWSROOM_REPORTS_DIR="${REPO_ROOT}/.mac-dev/reports"
+unset NEWSROOM_DISCORD_WEBHOOK_URL
+
+if [ ! -f ".mac-dev/newsroom.db" ]; then
+    echo "==> First run: creating isolated dev database"
+    .venv/bin/newsroom init-db
+fi
+
+echo "==> Local dev DB: .mac-dev/newsroom.db (isolated, not production)"
+echo "==> Discord webhook: unset (no notification is possible from this script)"
+echo ""
+
+ARGS=()
+NOTIFY=0
+for arg in "$@"; do
+    if [ "$arg" = "--notify" ]; then
+        NOTIFY=1
+    else
+        ARGS+=("$arg")
+    fi
+done
+
+if [ "$NOTIFY" -eq 1 ]; then
+    exec .venv/bin/newsroom run "${ARGS[@]+"${ARGS[@]}"}"
+else
+    exec .venv/bin/newsroom run --no-notify "${ARGS[@]+"${ARGS[@]}"}"
+fi

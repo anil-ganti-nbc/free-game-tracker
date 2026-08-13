@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Set up (or reuse) a local macOS dev environment for Free Game Tracker.
+# Safe to re-run: never destroys an existing .venv, only installs/updates deps.
+#
+# This project is production-sensitive (Hetzner is canonical production,
+# with its own Discord webhook). Every other mac/ script in this directory
+# defaults to isolated local state and never touches production credentials.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$REPO_ROOT"
+
+PYTHON_VERSION="3.12"
+
+if ! command -v uv >/dev/null 2>&1; then
+    echo "error: 'uv' is not installed or not on PATH." >&2
+    echo "  Install it from https://docs.astral.sh/uv/ and re-run this script." >&2
+    exit 1
+fi
+
+if [ -d ".venv" ]; then
+    echo "==> Reusing existing .venv"
+else
+    echo "==> Creating .venv (Python $PYTHON_VERSION)"
+    uv venv --python "$PYTHON_VERSION" .venv
+fi
+
+echo "==> Installing/updating dependencies (dev + gui extras)"
+uv pip install --python .venv/bin/python -e ".[dev,gui]"
+
+mkdir -p .mac-dev/reports
+
+echo ""
+echo "Bootstrap complete."
+echo "  Local dev state lives in: $REPO_ROOT/.mac-dev/ (gitignored, isolated"
+echo "  from any production database or credentials)."
+echo "  Next: mac/test, mac/health, mac/dashboard, mac/dev-run, or"
+echo "        mac/test-notifications-local"

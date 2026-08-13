@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# Safely exercise the REAL notification-construction-and-delivery code path
+# end to end, with zero possibility of contacting Discord (production or
+# otherwise): starts a localhost-only echo receiver, points the tracker at
+# it instead of any real webhook, runs one detection cycle against a fresh
+# isolated dev database, prints what was "delivered", and tears everything
+# down. No external service (httpbin or similar) is used or required.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$REPO_ROOT"
+
+if [ ! -x ".venv/bin/newsroom" ]; then
+    echo "error: no .venv found. Run mac/bootstrap first." >&2
+    exit 1
+fi
+
+NOTIF_DIR="${REPO_ROOT}/.mac-dev/notif-test"
+rm -rf "$NOTIF_DIR"
+mkdir -p "$NOTIF_DIR"
+CAPTURE_FILE="${NOTIF_DIR}/captured_payloads.jsonl"
+: > "$CAPTURE_FILE"
+
+PORT="${FGT_MAC_NOTIF_TEST_PORT:-8917}"
+
+echo "==> Starting localhost-only echo receiver on 127.0.0.1:${PORT}"
+WEBHOOK_CAPTURE_FILE="$CAPTURE_FILE" \
+    .venv/bin/python "${SCRIPT_DIR}/_echo_server.py" "$PORT" \
+    > "${NOTIF_DIR}/echo_server.log" 2>&1 &
+SERVER_PID=$!
+
+cleanup() {
+    kill "$SERVER_PID" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
+# Wait for the receiver to be ready.
+READY=0
+for _ in $(seq 1 20); do
+    if curl -s -o /dev/null -m 1 -X POST "http://127.0.0.1:${PORT}/" 2>/dev/null; then
+        READY=1
+        break
+    fi
+    sleep 0.25
+done
+if [ "$READY" -ne 1 ]; then
+    echo "error: local echo receiver did not start in time." >&2
+    exit 1
+fi
+: > "$CAPTURE_FILE"  # discard the readiness-probe POST above
+
+echo "==> Fresh isolated dev database (every event is 'new' this run, so"
+echo "    real payloads actually get built -- not just accounting)"
+export NEWSROOM_DATABASE_PATH="${NOTIF_DIR}/newsroom.db"
+export NEWSROOM_REPORTS_DIR="${NOTIF_DIR}/reports"
+export NEWSROOM_DISCORD_WEBHOOK_URL="http://127.0.0.1:${PORT}/webhook"
+.venv/bin/newsroom init-db >/dev/null
+
+echo "==> Running one real detection cycle, notifications pointed at localhost only"
+echo ""
+.venv/bin/newsroom run --verbose 2>&1 | grep -iE "detect|Discord|deliver|complete|posted|announc" || true
+echo ""
+
+echo "==> Captured payloads (this machine only -- nothing left this process):"
+.venv/bin/python - "$CAPTURE_FILE" <<'PYEOF'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path) as f:
+    lines = [json.loads(line) for line in f if line.strip()]
+
+if not lines:
+    print("  (none -- no new eligible events this run; try again later or after mac/dev-run has")
+    print("   established a baseline, since only genuinely new events trigger a payload)")
+else:
+    for i, payload in enumerate(lines, 1):
+        content = payload.get("content", "(no content field)")
+        embeds = payload.get("embeds", [])
+        print(f"  [{i}] {content}")
+        for e in embeds[:5]:
+            print(f"        - {e.get('title', '(untitled)')}")
+        if len(embeds) > 5:
+            print(f"        ... and {len(embeds) - 5} more")
+
+print(f"\nFull captured JSON: {path}")
+PYEOF
+
+echo ""
+echo "Done. Local echo receiver stopped. Nothing was sent to Discord."
