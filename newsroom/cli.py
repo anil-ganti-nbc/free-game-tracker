@@ -15,7 +15,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from newsroom import __version__
+from newsroom import __version__, run_lock
 from newsroom.compare import DEFAULT_ENDING_SOON_HOURS, RunDiff, compare, deduplicate
 from newsroom.config import settings
 from newsroom.database import (
@@ -434,14 +434,26 @@ def run(
 
     Any source that fails — expectedly or not — is logged and skipped; the run
     still completes with whatever the other sources returned.
+
+    Cross-process protected: if another ``run`` invocation already holds the
+    lock (e.g. an overlapping cron tick), this exits cleanly without
+    attempting any work rather than writing to the database concurrently.
+    A lock refusal is not a collector failure and is not recorded as one.
     """
     _configure_logging(verbose)
-    summary = run_pipeline(
-        selected=source,
-        ending_soon_hours=ending_soon_hours,
-        persist=not dry_run,
-        do_notify=not no_notify,
-    )
+    lock_path = settings.database_path.parent / "newsroom.lock"
+    try:
+        with run_lock.acquire(lock_path):
+            summary = run_pipeline(
+                selected=source,
+                ending_soon_hours=ending_soon_hours,
+                persist=not dry_run,
+                do_notify=not no_notify,
+            )
+    except run_lock.RunLockError as exc:
+        logger.info("run skipped: %s", exc)
+        console.print(f"[yellow]Skipped:[/yellow] {exc}")
+        raise typer.Exit(code=0) from None
 
     persisted = "" if not dry_run else " [dim](dry run — nothing stored)[/dim]"
     console.print(

@@ -10,6 +10,29 @@ only host-level configuration.
 I have no network access to your NAS from this session. Everything below is a guide
 for you (or a later agent given SSH access) to execute — I have not run any of it.
 
+**Update (2026-08-16, from the real NAS's Phase 0/1 commissioning — see
+`CLANK_NAS_PHASE0_COMMISSIONING.md` and `OEM_RADAR_NAS_PHASE1_PLAN.md` on the NAS
+itself under `/volume2/clank/`):** the actual Synology is a DS923+, and the settled
+storage policy is **`/volume2`-only for all Clank infrastructure and data — `/volume1`
+is the owner's personal-data volume and is completely out of scope.** Every
+`/volume1/docker-data/...` path below is stale; the real target is
+`/volume2/clank/free-game-tracker/...`, following the same `deploy/state/logs/
+backups/secrets/staging` layout used for the OEM Radar canary. `/volume2` is the
+smaller, RAID-1 (mirrored) pool — the opposite of what you'd naively expect from its
+size, so don't assume the bigger volume is the safer one.
+
+**State strategy for this Clank specifically: MIGRATE, not fresh-baseline.** OEM Radar's
+NAS canary deliberately started from an empty database, since a from-scratch crawl
+carries zero risk there (`baseline_quiet` suppresses notifications on any source's
+first-ever crawl). Free Game Tracker's dedupe/delivery state doesn't have that
+property — the whole point of `newsroom.db` is remembering which giveaways/deals have
+already been announced, so a fresh NAS database would treat every currently-known-free
+game as brand new and re-announce all of it to production Discord on the first run.
+The eventual NAS migration must carry the authoritative `newsroom.db` (and `reports/`
+history if wanted) across, not start clean — but the disposable HTTP-response cache (if
+any is added later) would not need to make the trip. Not performed as part of this
+hardening pass; recorded here for whenever that migration is actually authorized.
+
 ## Step 0 — Confirm the CPU architecture before trusting these images
 
 DSM → Control Panel → Info Center, or SSH in and run `uname -m`.

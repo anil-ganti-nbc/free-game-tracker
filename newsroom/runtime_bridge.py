@@ -52,6 +52,7 @@ def get_version_info() -> dict[str, str]:
         "runtime_contract_version": RUNTIME_CONTRACT_VERSION,
         "health_contract_version": HEALTH_CONTRACT_VERSION,
         "release_channel": settings.release_channel,
+        "source_revision": settings.source_revision,
         "runtime_bridge": "stage1.2",
     }
 
@@ -63,6 +64,12 @@ def get_identity() -> Any:
     NEWSROOM_RELEASE_CHANNEL=production in its deployment config. Defaulting
     otherwise keeps an unconfigured or freshly built image from claiming a
     maturity it hasn't earned.
+
+    source_revision is threaded through the fallback dict below (the only
+    path actually exercised today — clank_runtime is not an installed
+    dependency of this project). RuntimeIdentity's own field set is not
+    modified here, since that would mean changing an external, uninstalled
+    package's contract rather than this project's code.
     """
     if _HAS_RUNTIME:
         try:
@@ -81,6 +88,7 @@ def get_identity() -> Any:
         "clank_id": CLANK_ID,
         "clank_version": PACKAGE_VERSION,
         "release_channel": settings.release_channel,
+        "source_revision": settings.source_revision,
     }
 
 
