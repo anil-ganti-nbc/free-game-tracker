@@ -4,15 +4,66 @@ This is the repeatable procedure for shipping *any* future change — not just t
 initial deployment. Follow the same steps whether it's the first release or the
 fiftieth.
 
-**Source-of-truth note (2026-08-09):** GitHub is not yet in use for this project.
-There is no commit SHA to reference as deployment identity. Provenance for this phase
-is an immutable, hashed source snapshot (`scripts/make_snapshot.sh`) plus a deployment
-identifier of the form `free-game-tracker_<date>_<environment>-<NN>` — not a git
-reference. A local git repository does exist on this machine (created before this
-policy was clarified) and remains useful for diffing "what changed since baseline,"
-but it is not the provenance mechanism and nothing here depends on it being pushed
-anywhere. When GitHub is introduced later, these preserved snapshots establish
-provenance for the initial import — see `DECISIONS.md` for the full reasoning.
+**Source-of-truth note (2026-08-09, superseded 2026-08-16):** GitHub was not in use
+for this project at the time this note was first written, and deployment identity for
+the first several releases (through `free-game-tracker_2026-08-12_hetzner-03`,
+inclusive) is an immutable, hashed source snapshot (`scripts/make_snapshot.sh`)
+recorded in `DEPLOYMENT_LEDGER.md` — not a git SHA. That history is real and is not
+being rewritten; see `DECISIONS.md` for why the snapshot model was chosen originally.
+
+**As of the 2026-08-16 provenance/run-lock hardening pass, GitHub is the deployment
+identity mechanism**, per the fleet-wide standard already proven on OEM Radar and
+others. `free-game-tracker_2026-08-12_hetzner-03` — the production release
+immediately prior to this pass — was confirmed byte-for-byte identical (modulo one
+file's line-ending representation) to git commit `840641fe83b4`, closing the gap
+between the old snapshot-based history and git before switching mechanisms, rather
+than just asserting the two were equivalent. Every release from this pass forward
+uses the model in the next section.
+
+### Git provenance (current model)
+
+```
+accepted Git full SHA
+        =
+Docker OCI label org.opencontainers.image.revision
+        =
+runtime identity/version source_revision
+```
+
+- The Dockerfile's `ARG GIT_REVISION` (default `unknown`) is baked into the
+  `org.opencontainers.image.revision` label and the `NEWSROOM_SOURCE_REVISION` env var
+  at build time — never derived from a `.git` directory inside the image (none is
+  copied in).
+- Build with `--build-arg GIT_REVISION=$(git rev-parse HEAD)` (or via
+  `docker-compose.yml`'s `build.args.GIT_REVISION`, sourced from a `GIT_REVISION` env
+  var at build time).
+- `newsroom version` / `newsroom identity` report `source_revision` — `"unknown"` for
+  any local build that didn't supply one, never a fabricated value.
+- The deployment identifier / image tag (`IMAGE_TAG`, read from `.deployed-id`) is now
+  the short Git SHA, e.g. `free-game-tracker:a1b2c3d` — not a date-stamped snapshot
+  identifier and never `latest`.
+- Always build from a merged commit on `main` (feature branch → PR → merge → build the
+  resulting SHA) — never from uncommitted working-tree changes, and never hot-patch
+  Hetzner directly.
+
+### Run lock (cross-process single-instance protection)
+
+`newsroom run` acquires an OS-level advisory lock (`newsroom/run_lock.py`, `fcntl.flock`)
+on `<database directory>/newsroom.lock` before doing any work, and releases it
+automatically on exit — including on an exception. If another `run` already holds it
+(e.g. an hourly cron tick firing while the previous one is still going), the new
+invocation logs a clear message, prints `Skipped: ...`, and exits `0` without touching
+the database — a lock refusal is deliberately not recorded as a collector failure in
+`source_health`. This closes a real architectural gap: the dashboard's existing
+`threading.Lock` (`newsroom/webapp.py`) only ever protected concurrent requests inside
+one running process, not two independent `docker compose run` invocations, which is
+exactly what an hourly cron entry can produce if a run ever takes longer than an hour.
+An flock (not a PID-file-and-liveness-check) was chosen deliberately: every
+`docker compose run --rm` invocation gets its own PID namespace, so a stale-lock check
+based on "is the old PID still alive" would always see its own trivially-alive PID 1
+and never correctly detect a genuinely dead run — the kernel-level flock sidesteps that
+by releasing automatically when the holding process's file descriptor closes, for any
+reason, without needing any liveness heuristic at all.
 
 **Target environment note:** current deployment target is a temporary Hetzner host
 (`204.168.142.1`, hardened, Docker-ready) buying soak time until the Synology NAS is
@@ -25,10 +76,9 @@ that migration happens later — this runbook is the one to follow right now.
 
 | Field | Value |
 |---|---|
-| authoritative source | the local `Free Game Tracker` working copy on the dev machine |
-| deployment identifier | `free-game-tracker_<YYYY-MM-DD>_<environment>-<NN>`, e.g. `free-game-tracker_2026-08-09_hetzner-01` |
-| source snapshot | `snapshots/<deployment-id>.tar.gz` + `.sha256` (produced by `scripts/make_snapshot.sh`) — this tarball is the preserved, untouched baseline for this version |
-| candidate image | `free-game-tracker:<deployment-id>` |
+| authoritative source | the accepted full Git SHA on `main` (merged via PR — never a local working copy) |
+| deployment identifier | the short Git SHA, e.g. `a1b2c3d` |
+| candidate image | `free-game-tracker:<short-sha>` |
 | deployed image digest | `docker inspect --format '{{.Id}}'` output, recorded at cutover time |
 | staging state path | `~deploy/free-game-tracker-staging/data/` on Hetzner (separate directory, never the production one) |
 | production state path | `~deploy/free-game-tracker/data/` on Hetzner |
@@ -36,27 +86,27 @@ that migration happens later — this runbook is the one to follow right now.
 | production schedule | cron entry, hourly, calls `deploy/run.sh` |
 | staging notification target | none / a distinct test webhook — never the real one |
 | production notification target | the real `NEWSROOM_DISCORD_WEBHOOK_URL` |
-| rollback snapshot | the previous deployment identifier's tarball + image, both kept |
+| rollback image | the previous short-SHA's image, kept on Hetzner (not pruned) |
 | state compatibility boundary | current Alembic head at release time — see below |
 
 ## Procedure
 
-### 1. Produce a hashed source snapshot (dev machine, never on Hetzner)
+### 1. Confirm the accepted Git revision
+
+Merge the feature branch's PR first. The accepted revision is `main`'s HEAD full SHA
+after merge — `git rev-parse HEAD`. Never build from uncommitted changes or an
+unmerged branch.
+
+### 2. Candidate build (dev machine, or wherever Docker is available)
 
 ```bash
-cd "Free Game Tracker"
-scripts/make_snapshot.sh hetzner
-# -> prints deployment_id, archive path, and sha256 - record all three
-```
-
-This tarball is the exact, immutable input to the build. Nothing about the working
-copy after this point affects what gets deployed — that's the point of snapshotting
-before building, rather than building straight from a directory that keeps changing.
-
-### 2. Candidate build (dev machine)
-
-```bash
-docker build --platform linux/amd64 -t free-game-tracker:<deployment-id> .
+GIT_REVISION=$(git rev-parse HEAD)
+docker build --platform linux/amd64 \
+  --build-arg GIT_REVISION="$GIT_REVISION" \
+  -t "free-game-tracker:${GIT_REVISION:0:7}" .
+# Verify before going further:
+docker inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' \
+  "free-game-tracker:${GIT_REVISION:0:7}"   # must equal $GIT_REVISION
 ```
 
 ### 3. Local validation (dev machine, same checks already proven this session)

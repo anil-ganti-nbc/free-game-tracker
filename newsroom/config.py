@@ -166,6 +166,18 @@ class Settings(BaseSettings):
         description="Operational release channel of this deployment.",
     )
 
+    # --- Provenance -----------------------------------------------------------
+    # The full Git SHA this running image was built from. Baked in at build
+    # time via the Dockerfile's GIT_REVISION build-arg -- never derived from a
+    # .git directory at runtime (none is copied into the image; even if it
+    # were, the container filesystem isn't proof of what was actually built).
+    # A local build with no revision supplied reports "unknown" rather than
+    # fabricating an identity.
+    source_revision: str = Field(
+        default="unknown",
+        description="Full Git SHA this build was produced from, or 'unknown'.",
+    )
+
     # --- Quality gate (what surfaces to reports and notifications) ----------
     # The database always keeps the full record; these only affect what is
     # shown to the editor, to keep low-value "nothingburgers" out of the way.
