@@ -3,7 +3,7 @@
 Normal acquisition/refusal/release are tested directly against the module.
 The "stale lock" scenario is tested by actually killing a subprocess that
 holds the lock — the meaningful case for this design, since it proves the
-kernel releases the flock automatically on process death rather than relying
+OS releases the file lock automatically on process death rather than relying
 on any PID-liveness check (see the module docstring for why that check would
 be unreliable across separate Docker containers).
 """
@@ -78,8 +78,8 @@ def test_lock_file_contains_no_secrets_and_is_plain_json(tmp_path: Path) -> None
 
 
 def test_stale_lock_from_a_killed_process_is_reclaimed(tmp_path: Path) -> None:
-    """Simulate a genuinely crashed holder (SIGKILL, no cleanup) and confirm a
-    fresh acquire succeeds right away — the kernel released the flock when
+    """Simulate a genuinely crashed holder (forced termination, no cleanup) and confirm a
+    fresh acquire succeeds right away — the OS released the file lock when
     the process died, no manual staleness/timeout logic required."""
     lock_path = tmp_path / "newsroom.lock"
     holder = subprocess.Popen(
@@ -87,11 +87,10 @@ def test_stale_lock_from_a_killed_process_is_reclaimed(tmp_path: Path) -> None:
             sys.executable,
             "-c",
             (
-                "import fcntl, os, time, sys; "
-                f"fd = os.open({str(lock_path)!r}, os.O_CREAT | os.O_RDWR, 0o644); "
-                "fcntl.flock(fd, fcntl.LOCK_EX); "
-                "sys.stdout.write('locked\\n'); sys.stdout.flush(); "
-                "time.sleep(60)"
+                "import time; from newsroom import run_lock; "
+                f"path = {str(lock_path)!r}; "
+                "lock = run_lock.acquire(path); lock.__enter__(); "
+                "print('locked', flush=True); time.sleep(60)"
             ),
         ],
         stdout=subprocess.PIPE,
@@ -106,7 +105,7 @@ def test_stale_lock_from_a_killed_process_is_reclaimed(tmp_path: Path) -> None:
         with pytest.raises(run_lock.RunLockError), run_lock.acquire(lock_path):
             pytest.fail("acquire should not succeed while holder is alive")
 
-        holder.kill()  # SIGKILL — no chance to run any cleanup code
+        holder.kill()  # forced termination — no chance to run context cleanup
         holder.wait(timeout=5)
 
         # Give the kernel a moment to tear down the dead process's fds.

@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 
 FEED_URL = "https://news.xbox.com/en-us/feed/"
 
+__all__ = ["SourceError", "fetch_events"]
+
 MONTHS = [
     "january",
     "february",

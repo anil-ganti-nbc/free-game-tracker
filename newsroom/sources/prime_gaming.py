@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class RawOffer:
-    def __init__(self, title, url, section, raw_text):
+    def __init__(self, title: str, url: str, section: str, raw_text: str) -> None:
         self.title = title
         self.url = url
         self.section = section

@@ -362,7 +362,7 @@ def test_guarantee_e_delivery_failure_distinguishable_from_zero_event_run() -> N
     assert not zero_result
     assert failure_result.outcome is DeliveryOutcome.DELIVERY_FAILED
     assert zero_result.outcome is DeliveryOutcome.NO_EVENTS
-    assert failure_result.outcome != zero_result.outcome
+    assert failure_result.outcome.value != zero_result.outcome.value
     assert failure_result.eligible == 1
     assert failure_result.posted == 0
 
@@ -389,7 +389,7 @@ def test_guarantee_f_intentional_suppression_distinguishable_from_failure() -> N
     assert not failure_result
     assert failure_result.outcome is DeliveryOutcome.DELIVERY_FAILED
 
-    assert suppressed_result.outcome != failure_result.outcome
+    assert suppressed_result.outcome.value != failure_result.outcome.value
 
 
 def test_category_notifiers_registry_matches_public_builders() -> None:

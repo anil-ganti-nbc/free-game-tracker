@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 def test_fetch_events_feed_ordering_and_horizon():
@@ -49,7 +50,7 @@ def test_fetch_events_feed_ordering_and_horizon():
     </rss>
     """
     
-    with patch('newsroom.sources.playstation_plus.fetch_text', return_value=xml_feed), \\
+    with patch('newsroom.sources.playstation_plus.fetch_text', return_value=xml_feed), \
          patch('newsroom.sources.playstation_plus.datetime') as mock_dt:
         mock_dt.now.return_value = datetime(2026, 8, 15, tzinfo=UTC)
         events = fetch_events()
@@ -59,8 +60,8 @@ def test_fetch_events_feed_ordering_and_horizon():
     # Game D (May 1) is older than 90 days from Aug 15.
     # Game E skipped because malformed date.
     
-    assert "Game A " in titles
-    assert "Game C " in titles
-    assert "Game B " in titles
-    assert "Game D " not in titles
-    assert "Game E " not in titles
+    assert "Game A" in titles
+    assert "Game C" in titles
+    assert "Game B" in titles
+    assert "Game D" not in titles
+    assert "Game E" not in titles

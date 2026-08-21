@@ -1,6 +1,6 @@
 # Free Game Tracker (newsroom) — Linux AMD64 production image.
 # Immutable release artifact: built from a reviewed commit, never edited in place.
-FROM python:3.12-slim-bookworm
+FROM python:3.12-slim-bookworm@sha256:a116514e19457bcb7af7efe9c3dd0b9b71e85b317694e7882a1c52aa15a78134
 
 # Full Git SHA of the source this image was built from. Must be passed at
 # build time (e.g. `--build-arg GIT_REVISION=$(git rev-parse HEAD)`).
@@ -24,14 +24,14 @@ WORKDIR /app
 
 RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin clank
 
-COPY pyproject.toml README.md ./
+COPY pyproject.toml README.md requirements.container.lock ./
 COPY newsroom ./newsroom
 COPY scripts ./scripts
 COPY alembic.ini ./alembic.ini
 COPY alembic ./alembic
 
-RUN pip install --upgrade pip \
-    && pip install . \
+RUN pip install --require-hashes -r requirements.container.lock \
+    && pip install --no-deps . \
     && mkdir -p /app/data/reports \
     && chmod +x /app/scripts/*.sh \
     && chown -R clank:clank /app

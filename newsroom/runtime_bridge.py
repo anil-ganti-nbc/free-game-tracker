@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timezone
+from importlib import import_module
 from pathlib import Path
 from typing import Any
 
@@ -16,31 +17,36 @@ from newsroom.config import settings
 
 CLANK_ID = "free-game-tracker"
 
-try:
-    from clank_runtime.contracts.enums import (
-        IngestionState,
-        OperationalState,
-        ReleaseChannel,
-    )
-    from clank_runtime.contracts.health import HealthPayload
-    from clank_runtime.contracts.identity import RuntimeIdentity
-    from clank_runtime.version import (
-        HEALTH_CONTRACT_VERSION,
-        RUNTIME_CONTRACT_VERSION,
-        __version__ as RUNTIME_VERSION,
-    )
+OperationalState: Any
+IngestionState: Any
+ReleaseChannel: Any
+HealthPayload: Any
+RuntimeIdentity: Any
 
+try:
+    _runtime_enums = import_module("clank_runtime.contracts.enums")
+    _runtime_health = import_module("clank_runtime.contracts.health")
+    _runtime_identity = import_module("clank_runtime.contracts.identity")
+    _runtime_version = import_module("clank_runtime.version")
+    IngestionState = vars(_runtime_enums)["IngestionState"]
+    OperationalState = vars(_runtime_enums)["OperationalState"]
+    ReleaseChannel = vars(_runtime_enums)["ReleaseChannel"]
+    HealthPayload = vars(_runtime_health)["HealthPayload"]
+    RuntimeIdentity = vars(_runtime_identity)["RuntimeIdentity"]
+    RUNTIME_VERSION = vars(_runtime_version)["__version__"]
+    RUNTIME_CONTRACT_VERSION = vars(_runtime_version)["RUNTIME_CONTRACT_VERSION"]
+    HEALTH_CONTRACT_VERSION = vars(_runtime_version)["HEALTH_CONTRACT_VERSION"]
     _HAS_RUNTIME = True
 except ImportError:  # pragma: no cover - clank_runtime is an optional, separate package
     _HAS_RUNTIME = False
     RUNTIME_VERSION = "unavailable"
     RUNTIME_CONTRACT_VERSION = "0.1.0-stage0"
     HEALTH_CONTRACT_VERSION = "0.1.0-stage0"
-    OperationalState = None  # type: ignore[misc, assignment]
-    IngestionState = None  # type: ignore[misc, assignment]
-    ReleaseChannel = None  # type: ignore[misc, assignment]
-    HealthPayload = None  # type: ignore[misc, assignment]
-    RuntimeIdentity = None  # type: ignore[misc, assignment]
+    OperationalState = None
+    IngestionState = None
+    ReleaseChannel = None
+    HealthPayload = None
+    RuntimeIdentity = None
 
 
 def get_version_info() -> dict[str, str]:

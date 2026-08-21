@@ -4,14 +4,15 @@ Prevents two independent invocations (e.g. an hourly cron tick firing while
 the previous hour's run is still going) from writing the same SQLite
 database concurrently.
 
-Uses an OS-level advisory file lock (``fcntl.flock``) rather than a PID-file
+Uses an OS-level advisory file lock (``fcntl.flock`` on POSIX and
+``msvcrt.locking`` on Windows) rather than a PID-file
 existence/liveness check. This matters specifically because every
 ``docker compose run --rm`` invocation gets its own PID namespace, so the
 main process is *always* PID 1 from its own point of view — a stale-lock
 check that asks "is the PID recorded in the old lock file still alive"
 would always answer yes when asked by a fresh container, since that
 container's own init process trivially satisfies the query regardless of
-whether the *actual* old run is still going. An flock sidesteps this
+whether the *actual* old run is still going. An OS lock sidesteps this
 entirely: the kernel ties the lock to the file's inode, which is genuinely
 shared across containers via the bind-mounted/volume-backed lock file (the
 same mechanism that already makes SQLite's own locking work correctly
@@ -25,7 +26,6 @@ Non-blocking by design: a refusal means "skip this invocation," not "wait."
 
 from __future__ import annotations
 
-import fcntl
 import json
 import logging
 import os
@@ -35,6 +35,14 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
+
+if os.name == "nt":
+    _windows_lock: Any = __import__("msvcrt")
+else:
+    _posix_lock: Any = __import__("fcntl")
+
+_WINDOWS_LOCK_OFFSET = 1 << 20
 
 log = logging.getLogger("newsroom.run_lock")
 
@@ -48,6 +56,22 @@ class RunLock:
     path: Path
     pid: int
     acquired_at: float
+
+
+def _lock(fd: int) -> None:
+    if os.name == "nt":
+        os.lseek(fd, _WINDOWS_LOCK_OFFSET, os.SEEK_SET)
+        _windows_lock.locking(fd, _windows_lock.LK_NBLCK, 1)
+    else:
+        _posix_lock.flock(fd, _posix_lock.LOCK_EX | _posix_lock.LOCK_NB)
+
+
+def _unlock(fd: int) -> None:
+    if os.name == "nt":
+        os.lseek(fd, _WINDOWS_LOCK_OFFSET, os.SEEK_SET)
+        _windows_lock.locking(fd, _windows_lock.LK_UNLCK, 1)
+    else:
+        _posix_lock.flock(fd, _posix_lock.LOCK_UN)
 
 
 def _read_holder(path: Path) -> dict[str, object] | None:
@@ -74,10 +98,14 @@ def acquire(path: str | Path) -> Iterator[RunLock]:
     """
     lock_path = Path(path)
     lock_path.parent.mkdir(parents=True, exist_ok=True)
+    # Keep operator-readable metadata separate from the kernel lock inode.
+    # Windows denies a whole-file read once it reaches a locked byte, even
+    # when the byte is beyond the JSON payload.
+    guard_path = lock_path.with_name(f"{lock_path.name}.guard")
 
-    fd = os.open(str(lock_path), os.O_CREAT | os.O_RDWR, 0o644)
+    fd = os.open(str(guard_path), os.O_CREAT | os.O_RDWR, 0o644)
     try:
-        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        _lock(fd)
     except OSError as exc:
         holder = _read_holder(lock_path)
         os.close(fd)
@@ -98,9 +126,7 @@ def acquire(path: str | Path) -> Iterator[RunLock]:
         "started_at": started_at,
         "started_at_iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
-    os.ftruncate(fd, 0)
-    os.write(fd, json.dumps(payload, indent=2).encode("utf-8"))
-    os.fsync(fd)
+    lock_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     log.info("acquired run lock %s (pid=%s)", lock_path, pid)
 
     lock = RunLock(path=lock_path, pid=pid, acquired_at=started_at)
@@ -108,7 +134,7 @@ def acquire(path: str | Path) -> Iterator[RunLock]:
         yield lock
     finally:
         try:
-            fcntl.flock(fd, fcntl.LOCK_UN)
+            _unlock(fd)
         finally:
             os.close(fd)
         log.info("released run lock %s", lock_path)
