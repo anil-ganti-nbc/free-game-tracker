@@ -2,10 +2,10 @@
 Apple Arcade newsroom source.
 """
 
-from newsroom.core import NewsEvent, NewsSource
+from newsroom.models import NewsEvent
 
 
-class AppleArcadeSource(NewsSource):
+class AppleArcadeSource:
     name = "apple_arcade"
 
     def fetch_events(self) -> list[NewsEvent]:

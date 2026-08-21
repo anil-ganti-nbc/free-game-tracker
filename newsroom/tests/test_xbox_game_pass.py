@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import NoReturn
 
 import pytest
 
@@ -13,12 +14,12 @@ from newsroom.sources.xbox_game_pass import (
 )
 
 
-def test_parse_platforms():
+def test_parse_platforms() -> None:
     p = _parse_platforms("Cloud, Console, Handheld, PC")
     assert p == ["cloud", "console", "handheld", "pc"]
 
 
-def test_parse_plans():
+def test_parse_plans() -> None:
     pl, raw = _parse_plans(
         "Now with Game Pass Premium; joining Game Pass Ultimate and PC Game Pass"
     )
@@ -27,7 +28,7 @@ def test_parse_plans():
     assert "pc_game_pass" in pl
 
 
-def test_parse_historical_plans():
+def test_parse_historical_plans() -> None:
     pl, raw = _parse_plans("Game Pass Core and Xbox Game Pass Standard")
     assert "essential" in pl
     assert "core" in raw
@@ -35,7 +36,7 @@ def test_parse_historical_plans():
     assert "standard" in raw
 
 
-def test_unknown_plan_gives_lower_confidence():
+def test_unknown_plan_gives_lower_confidence() -> None:
     pub = datetime(2026, 8, 4, tzinfo=UTC)
     html = """
     <h2>Coming Soon</h2>
@@ -46,7 +47,7 @@ def test_unknown_plan_gives_lower_confidence():
     assert events[0].confidence.score == 60  # 90 - 30
 
 
-def test_parse_date():
+def test_parse_date() -> None:
     pub = datetime(2026, 8, 4, tzinfo=UTC)
     d = _parse_date_from_text("– August 12", pub)
     assert d is not None
@@ -54,7 +55,7 @@ def test_parse_date():
     assert d.day == 12
 
 
-def test_extract_post_sections_and_leakage():
+def test_extract_post_sections_and_leakage() -> None:
     pub = datetime(2026, 8, 4, tzinfo=UTC)
     html = """
     <h2>Available Today</h2>
@@ -91,7 +92,7 @@ def test_extract_post_sections_and_leakage():
     assert fut.available_from is None
 
 
-def test_extract_sibling_metadata_safety():
+def test_extract_sibling_metadata_safety() -> None:
     pub = datetime(2026, 8, 4, tzinfo=UTC)
     html = """
     <h2>Coming Soon</h2>
@@ -105,7 +106,7 @@ def test_extract_sibling_metadata_safety():
     assert "cloud" not in game_one.platforms
 
 
-def test_extract_ea_play_and_day_one():
+def test_extract_ea_play_and_day_one() -> None:
     pub = datetime(2026, 8, 4, tzinfo=UTC)
     html = """
     <h2>Coming Soon</h2>
@@ -119,7 +120,7 @@ def test_extract_ea_play_and_day_one():
     assert ev.metadata.get("ea_play") is True
 
 
-def test_multiple_games_sharing_article():
+def test_multiple_games_sharing_article() -> None:
     pub = datetime(2026, 8, 4, tzinfo=UTC)
     html = """
     <h2>Coming Soon</h2>
@@ -134,7 +135,7 @@ def test_multiple_games_sharing_article():
     assert len(keys) == 2, "Identity safety fail! Multiple distinct events in one URL collided."
 
 
-def test_dlc_exclusion():
+def test_dlc_exclusion() -> None:
     pub = datetime(2026, 8, 4, tzinfo=UTC)
     html = """
     <h2>DLC and Game Updates</h2>
@@ -145,8 +146,8 @@ def test_dlc_exclusion():
     assert len(events) == 0
 
 
-def test_raise_source_error_on_fetch_fail(monkeypatch):
-    def fake_fetch(url):
+def test_raise_source_error_on_fetch_fail(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_fetch(url: str) -> NoReturn:
         raise SourceError("Network offline")
 
     import newsroom.sources.xbox_game_pass as xbox
@@ -157,8 +158,8 @@ def test_raise_source_error_on_fetch_fail(monkeypatch):
         fetch_events()
 
 
-def test_raise_source_error_on_invalid_xml(monkeypatch):
-    def fake_fetch(url):
+def test_raise_source_error_on_invalid_xml(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_fetch(url: str) -> str:
         return "<invalid>xml"
 
     import newsroom.sources.xbox_game_pass as xbox
@@ -169,8 +170,8 @@ def test_raise_source_error_on_invalid_xml(monkeypatch):
         fetch_events()
 
 
-def test_empty_feed_silently_returns_empty_list(monkeypatch):
-    def fake_fetch(url):
+def test_empty_feed_silently_returns_empty_list(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_fetch(url: str) -> str:
         return '<?xml version="1.0" encoding="UTF-8"?><rss><channel></channel></rss>'
 
     import newsroom.sources.xbox_game_pass as xbox
@@ -181,7 +182,7 @@ def test_empty_feed_silently_returns_empty_list(monkeypatch):
     assert events == []
 
 
-def test_historical_time_window_filtering(monkeypatch):
+def test_historical_time_window_filtering(monkeypatch: pytest.MonkeyPatch) -> None:
     old_date = (datetime.now(UTC) - timedelta(days=40)).strftime("%a, %d %b %Y %H:%M:%S +0000")
     recent_date = (datetime.now(UTC) - timedelta(days=10)).strftime("%a, %d %b %Y %H:%M:%S +0000")
 
@@ -204,7 +205,7 @@ def test_historical_time_window_filtering(monkeypatch):
     </channel></rss>
     """
 
-    def fake_fetch(url):
+    def fake_fetch(url: str) -> str:
         return xml
 
     import newsroom.sources.xbox_game_pass as xbox

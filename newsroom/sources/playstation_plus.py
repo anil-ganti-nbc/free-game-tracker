@@ -577,18 +577,18 @@ def fetch_events() -> list[NewsEvent]:
         )
 
     by_content: dict[tuple[Any, ...], NewsEvent] = {}
-    for e in events:
-        key = _content_key(e)
+    for event in events:
+        key = _content_key(event)
         existing = by_content.get(key)
-        if existing is None or e.confidence.score > existing.confidence.score:
-            by_content[key] = e
+        if existing is None or event.confidence.score > existing.confidence.score:
+            by_content[key] = event
     events = list(by_content.values())
 
-    unique_events = {}
-    for e in events:
-        if e.event_key not in unique_events or (
-            e.available_from and not unique_events[e.event_key].available_from
+    unique_events: dict[str, NewsEvent] = {}
+    for event in events:
+        if event.event_key not in unique_events or (
+            event.available_from and not unique_events[event.event_key].available_from
         ):
-            unique_events[e.event_key] = e
+            unique_events[event.event_key] = event
 
     return list(unique_events.values())

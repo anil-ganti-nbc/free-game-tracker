@@ -1,6 +1,7 @@
 import logging
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,6 @@ class RawAmazonOffer:
     is_prime_gaming: bool
 
 
-def fetch_recent_announcements(http_client) -> list[RawAmazonOffer]:
+def fetch_recent_announcements(http_client: Any) -> list[RawAmazonOffer]:
     # Placeholder for discovery implementation
     return []

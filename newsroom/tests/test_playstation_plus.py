@@ -311,7 +311,7 @@ def test_game_specific_precedence() -> None:
 from unittest.mock import patch
 
 
-def test_fetch_events_feed_ordering_and_horizon():
+def test_fetch_events_feed_ordering_and_horizon() -> None:
     from newsroom.sources.playstation_plus import fetch_events
 
     xml_feed = """<?xml version="1.0" encoding="UTF-8"?>
