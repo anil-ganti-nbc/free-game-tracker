@@ -1,5 +1,9 @@
 # Newsroom
 
+> **Phase 0: UNVERIFIED_PRODUCTION — promotion frozen.** Repository state is
+> not proof of the deployed SHA, scheduler, database, notification authority,
+> backup, or rollback target; those facts remain `UNKNOWN` in the fleet ledger.
+
 > Status: Production ready
 
 An internal newsroom sensor. Version 0.1 does exactly one thing: **detect newly
