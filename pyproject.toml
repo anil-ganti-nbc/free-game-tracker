@@ -21,6 +21,7 @@ dependencies = [
     "beautifulsoup4>=4.12",
     "python-dotenv>=1.0",
     "alembic>=1.19.0",
+    "tzdata>=2025.2",
 ]
 
 [project.optional-dependencies]
