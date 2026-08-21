@@ -98,8 +98,12 @@ def acquire(path: str | Path) -> Iterator[RunLock]:
     """
     lock_path = Path(path)
     lock_path.parent.mkdir(parents=True, exist_ok=True)
+    # Keep operator-readable metadata separate from the kernel lock inode.
+    # Windows denies a whole-file read once it reaches a locked byte, even
+    # when the byte is beyond the JSON payload.
+    guard_path = lock_path.with_name(f"{lock_path.name}.guard")
 
-    fd = os.open(str(lock_path), os.O_CREAT | os.O_RDWR, 0o644)
+    fd = os.open(str(guard_path), os.O_CREAT | os.O_RDWR, 0o644)
     try:
         _lock(fd)
     except OSError as exc:
@@ -122,9 +126,7 @@ def acquire(path: str | Path) -> Iterator[RunLock]:
         "started_at": started_at,
         "started_at_iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
-    os.ftruncate(fd, 0)
-    os.write(fd, json.dumps(payload, indent=2).encode("utf-8"))
-    os.fsync(fd)
+    lock_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     log.info("acquired run lock %s (pid=%s)", lock_path, pid)
 
     lock = RunLock(path=lock_path, pid=pid, acquired_at=started_at)
