@@ -203,6 +203,12 @@ def api_state() -> dict[str, Any]:
 @app.post("/api/run")
 def api_run() -> JSONResponse:
     """Trigger one detection cycle, unless one is already running."""
+    authorizer = getattr(app.state, "phase0_mutation_authorizer", None)
+    if authorizer is None or not authorizer():
+        return JSONResponse(
+            {"ok": False, "error": "Phase 0 dashboard is read-only; authenticated profile required."},
+            status_code=403,
+        )
     if not _run_lock.acquire(blocking=False):
         return JSONResponse(
             {"ok": False, "error": "A run is already in progress."}, status_code=409
@@ -311,7 +317,7 @@ _PAGE = """<!doctype html>
   <h1>📰 Newsroom <span class="muted">— free game watch</span></h1>
   <div class="spacer"></div>
   <span id="gen" class="muted"></span>
-  <button id="run" onclick="runNow()">Run now</button>
+  <span class="muted">Read-only Phase 0 dashboard</span>
 </header>
 <main>
   <div class="cards" id="cards"></div>

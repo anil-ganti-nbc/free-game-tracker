@@ -6,6 +6,7 @@ games), and ``run`` (the full fetch → compare → store → report pipeline).
 
 from __future__ import annotations
 
+import ipaddress
 import logging
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -61,6 +62,15 @@ app = typer.Typer(
     help="Newsroom — detect newly free PC games. Facts and evidence only.",
 )
 console = Console()
+
+
+def require_loopback_host(host: str) -> None:
+    try:
+        loopback = ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        loopback = host.lower() == "localhost"
+    if not loopback:
+        raise ValueError("Newsroom has no authenticated remote dashboard profile; host must be loopback")
 
 #: The sources wired up so far. Grows as sensors are added.
 _SOURCES = {
@@ -511,6 +521,11 @@ def serve(
     port: int = typer.Option(8765, help="Port to serve the dashboard on."),
 ) -> None:
     """Launch the local web dashboard (requires the 'gui' extra)."""
+    try:
+        require_loopback_host(host)
+    except ValueError as error:
+        console.print(f"[red]{error}[/red]")
+        raise typer.Exit(code=2) from error
     _configure_logging()
     init_db()
     try:

@@ -33,8 +33,10 @@ def env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
 
 
 @pytest.fixture
-def client() -> TestClient:
-    return TestClient(webapp.app)
+def client() -> Iterator[TestClient]:
+    webapp.app.state.phase0_mutation_authorizer = lambda: True
+    yield TestClient(webapp.app)
+    webapp.app.state.phase0_mutation_authorizer = None
 
 
 def _seed_event() -> NewsEvent:
@@ -54,7 +56,7 @@ def test_index_serves_html(env: Path, client: TestClient) -> None:
     resp = client.get("/")
     assert resp.status_code == 200
     assert "Newsroom" in resp.text
-    assert "Run now" in resp.text
+    assert "Read-only Phase 0 dashboard" in resp.text
 
 
 def test_state_reflects_stored_events(env: Path, client: TestClient) -> None:
@@ -93,6 +95,21 @@ def test_run_now_is_serialized(env: Path, client: TestClient) -> None:
         assert resp.json()["ok"] is False
     finally:
         webapp._run_lock.release()
+
+
+def test_phase0_dashboard_is_read_only_without_injected_test_profile(env: Path) -> None:
+    webapp.app.state.phase0_mutation_authorizer = None
+    with TestClient(webapp.app) as test_client:
+        response = test_client.post("/api/run")
+    assert response.status_code == 403
+
+
+def test_dashboard_bind_host_validation_is_fail_closed() -> None:
+    for host in ("127.0.0.1", "::1", "localhost"):
+        cli.require_loopback_host(host)
+    for host in ("0.0.0.0", "::", "192.168.1.20", "bad host", ""):
+        with pytest.raises(ValueError):
+            cli.require_loopback_host(host)
 
 
 def test_api_state_dateless_events() -> None:

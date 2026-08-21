@@ -4,7 +4,7 @@
 > not proof of the deployed SHA, scheduler, database, notification authority,
 > backup, or rollback target; those facts remain `UNKNOWN` in the fleet ledger.
 
-> Status: Production ready
+> Status: Code-level release candidate; deployed production state is unverified
 
 An internal newsroom sensor. Version 0.1 does exactly one thing: **detect newly
 free PC games** on the Epic Games Store, Steam (100%-off only), and GOG.
@@ -59,17 +59,18 @@ uv run newsroom serve        # local web dashboard (needs: uv sync --extra gui)
 
 ## Dashboard (GUI)
 
-A small local web dashboard shows current giveaways, per-source health, the
-upcoming heads-up, and a "Run now" button. Install the extra once, then serve:
+A small local web dashboard shows current giveaways, per-source health, and the
+upcoming heads-up. Install the extra once, then serve:
 
 ```powershell
 uv sync --extra gui
 uv run newsroom serve         # then open http://127.0.0.1:8765
 ```
 
-It reads the same database the CLI writes, auto-refreshes, and its "Run now"
-button triggers the identical fetch/compare/report/notify cycle. It binds to
-localhost only.
+It reads the same database the CLI writes and auto-refreshes. During Phase 0 it
+is read-only: no authenticated mutation profile exists. The supported launcher
+rejects wildcard, LAN, and invalid hosts; run collection through the approved
+CLI workflow.
 
 ## Breakout new releases (Steam)
 
