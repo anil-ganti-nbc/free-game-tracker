@@ -35,11 +35,14 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 if os.name == "nt":
-    import msvcrt
+    _windows_lock: Any = __import__("msvcrt")
 else:
-    import fcntl
+    _posix_lock: Any = __import__("fcntl")
+
+_WINDOWS_LOCK_OFFSET = 1 << 20
 
 log = logging.getLogger("newsroom.run_lock")
 
@@ -57,20 +60,18 @@ class RunLock:
 
 def _lock(fd: int) -> None:
     if os.name == "nt":
-        if os.fstat(fd).st_size == 0:
-            os.write(fd, b"\0")
-        os.lseek(fd, 0, os.SEEK_SET)
-        msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+        os.lseek(fd, _WINDOWS_LOCK_OFFSET, os.SEEK_SET)
+        _windows_lock.locking(fd, _windows_lock.LK_NBLCK, 1)
     else:
-        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        _posix_lock.flock(fd, _posix_lock.LOCK_EX | _posix_lock.LOCK_NB)
 
 
 def _unlock(fd: int) -> None:
     if os.name == "nt":
-        os.lseek(fd, 0, os.SEEK_SET)
-        msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+        os.lseek(fd, _WINDOWS_LOCK_OFFSET, os.SEEK_SET)
+        _windows_lock.locking(fd, _windows_lock.LK_UNLCK, 1)
     else:
-        fcntl.flock(fd, fcntl.LOCK_UN)
+        _posix_lock.flock(fd, _posix_lock.LOCK_UN)
 
 
 def _read_holder(path: Path) -> dict[str, object] | None:
