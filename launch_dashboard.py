@@ -16,7 +16,9 @@ import webbrowser
 from pathlib import Path
 
 HOST = "127.0.0.1"
-PORT = 8765
+# 8765 is Watch Clank's fixed dashboard port on this machine; when FGT used
+# it too, this launcher saw the port busy and opened Watch's dashboard.
+PORT = 8767
 URL = f"http://{HOST}:{PORT}"
 STARTUP_TIMEOUT_SECONDS = 20
 
@@ -49,7 +51,9 @@ def _start_server(root: Path) -> bool:
 
     creationflags = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
     subprocess.Popen(
-        [str(python_exe), str(newsroom_exe), "serve"],
+        # Pin the server to OUR port: `newsroom serve` defaults to 8765,
+        # which is Watch Clank's dashboard on this machine.
+        [str(python_exe), str(newsroom_exe), "serve", "--port", str(PORT)],
         cwd=str(root),
         stdout=log_file,
         stderr=subprocess.STDOUT,
