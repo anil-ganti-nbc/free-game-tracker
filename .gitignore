@@ -34,3 +34,8 @@ dashboard_full.png
 
 # Deployment snapshot tarballs - large generated build artifacts, not source
 snapshots/
+
+# Run-lock artifacts and local DB backups (runtime state, never source)
+newsroom.lock
+newsroom.lock.guard
+*.db.bak-*

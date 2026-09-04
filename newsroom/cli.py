@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import ipaddress
 import logging
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -82,6 +83,131 @@ _SOURCES = {
     "xbox_game_pass": xbox_game_pass.fetch_events,
     "geforce_now": geforce_now.fetch_events,
 }
+
+#: The two Steam trawls are not members of ``_SOURCES``: they produce their own
+#: row types (new_releases / steam_deals) rather than NewsEvents, are each
+#: behind their own settings flag, and record health under these names.
+BREAKOUT_SOURCE = "steam_breakouts"
+DEALS_SOURCE = "steam_deals"
+
+
+@dataclass(frozen=True)
+class SourceSpec:
+    """One runnable (or deliberately not-wired) collection unit.
+
+    This is the single place that answers "what can an operator actually run?".
+    The dashboard reads it; it never maintains a list of its own. ``wired`` is
+    about registration in the pipeline, ``enabled`` about runtime configuration
+    — a unit must be both to be runnable, and the dashboard reports which of
+    the two is missing rather than silently hiding the unit.
+    """
+
+    name: str
+    label: str
+    kind: str  # "giveaway" | "subscription" | "breakout" | "deal"
+    scope: str
+    wired: bool
+    disabled_reason: str | None = None
+
+    @property
+    def enabled(self) -> bool:
+        return self.disabled_reason is None
+
+    @property
+    def runnable(self) -> bool:
+        return self.wired and self.enabled
+
+
+def source_registry() -> list[SourceSpec]:
+    """Describe every collection unit, wired or not, with its current state.
+
+    Evaluated on each call because ``enable_breakouts`` / ``enable_deals`` are
+    configuration, not constants. Nothing here enables anything: a unit that is
+    off stays off and is reported as off.
+    """
+    kinds = {
+        "epic": (
+            "Epic Games Store",
+            "giveaway",
+            "Weekly free game giveaways plus the upcoming heads-up.",
+        ),
+        "steam": ("Steam", "giveaway", "Store entries currently discounted to 100% off."),
+        "gog": ("GOG", "giveaway", "GOG giveaway promotions."),
+        "gamerpower": (
+            "GamerPower",
+            "giveaway",
+            "Third-party aggregator covering storefronts with no clean first-party API.",
+        ),
+        "playstation_plus": (
+            "PlayStation Plus",
+            "subscription",
+            "Monthly claimable games and catalog additions.",
+        ),
+        "xbox_game_pass": ("Xbox Game Pass", "subscription", "Catalog additions and removals."),
+        "geforce_now": ("GeForce NOW", "subscription", "Cloud library additions."),
+    }
+    # Anything registered in _SOURCES is runnable, described or not: a sensor
+    # added without a description here must still appear and still be runnable,
+    # rather than silently vanishing from the operator's list.
+    specs: list[SourceSpec] = []
+    for name in _SOURCES:
+        label, kind, scope = kinds.get(
+            name, (name.replace("_", " ").title(), "giveaway", "Registered collector.")
+        )
+        specs.append(SourceSpec(name=name, label=label, kind=kind, scope=scope, wired=True))
+    specs.append(
+        SourceSpec(
+            name=BREAKOUT_SOURCE,
+            label="Steam breakout releases",
+            kind="breakout",
+            scope=(
+                f"New releases within {settings.breakout_max_days} days rated "
+                f"'{settings.breakout_min_review_tier}' or better."
+            ),
+            wired=True,
+            disabled_reason=None
+            if settings.enable_breakouts
+            else "NEWSROOM_ENABLE_BREAKOUTS is false",
+        )
+    )
+    specs.append(
+        SourceSpec(
+            name=DEALS_SOURCE,
+            label="Steam deals",
+            kind="deal",
+            scope=(
+                f"Discounts of {settings.deal_min_discount_percent}%+ on titles rated "
+                f"'{settings.deal_min_review_tier}' or better with "
+                f"{settings.deal_min_reviews}+ reviews ({settings.deal_scan_pages} pages/run)."
+            ),
+            wired=True,
+            disabled_reason=None if settings.enable_deals else "NEWSROOM_ENABLE_DEALS is false",
+        )
+    )
+    # Modules that exist in newsroom/sources but are deliberately not registered
+    # in the pipeline. Shown so the dashboard tells the truth about them rather
+    # than pretending they don't exist; never runnable from the UI.
+    for name, label, kind in (
+        ("prime_gaming", "Prime Gaming", "giveaway"),
+        ("amazon_luna", "Amazon Luna", "subscription"),
+        ("apple_arcade", "Apple Arcade", "subscription"),
+    ):
+        specs.append(
+            SourceSpec(
+                name=name,
+                label=label,
+                kind=kind,
+                scope="Module present but not registered in the run pipeline.",
+                wired=False,
+                disabled_reason="not wired into the pipeline",
+            )
+        )
+    return specs
+
+
+def runnable_source_names() -> list[str]:
+    """Names of every unit an explicit run is currently allowed to invoke."""
+    return [spec.name for spec in source_registry() if spec.runnable]
 
 
 def _configure_logging(verbose: bool = False) -> None:
@@ -382,13 +508,28 @@ def run_pipeline(
     ending_soon_hours: int = DEFAULT_ENDING_SOON_HOURS,
     persist: bool = True,
     do_notify: bool = True,
+    include_sources: bool = True,
+    include_breakouts: bool = True,
+    include_deals: bool = True,
 ) -> dict[str, Any]:
-    """Run one full detection cycle and return a summary."""
+    """Run one full detection cycle and return a summary.
+
+    ``include_sources`` / ``include_breakouts`` / ``include_deals`` scope the
+    run to a subset of collection units. They exist so an operator can re-run
+    one unit after fixing it without re-crawling everything; the default is a
+    full run and every caller that predates them is unaffected. Skipping the
+    NewsEvent sources is safe: the reconciliation step only ever expires rows
+    belonging to sources that were actually fetched successfully.
+    """
     init_db()
     generated_at = datetime.now(UTC)
 
-    current_events, successful_sources = _fetch_all_sources(selected)
-    upcoming = _fetch_upcoming(selected)
+    if include_sources:
+        current_events, successful_sources = _fetch_all_sources(selected)
+        upcoming = _fetch_upcoming(selected)
+    else:
+        current_events, successful_sources = [], set()
+        upcoming = []
     diff, markdown_path, json_path = _execute_run(
         current_events,
         generated_at,
@@ -398,15 +539,15 @@ def run_pipeline(
         successful_sources=successful_sources,
     )
     delivery: dict[str, int] = {}
-    if persist and do_notify:
+    if persist and do_notify and include_sources:
         giveaway_result = notify_new_giveaways(diff, webhook_url=settings.discord_webhook_url)
         subscription_result = notify_new_subscription_events(
             diff, webhook_url=settings.discord_webhook_url
         )
         delivery = _log_delivery_summary([giveaway_result, subscription_result])
 
-    breakouts_new = _run_breakouts(generated_at, persist, do_notify)
-    deals_new = _run_deals(persist, do_notify)
+    breakouts_new = _run_breakouts(generated_at, persist, do_notify) if include_breakouts else 0
+    deals_new = _run_deals(persist, do_notify) if include_deals else 0
 
     stale = _stale_sources(load_source_health(), settings.source_stale_hours)
     return {
@@ -419,6 +560,8 @@ def run_pipeline(
         "markdown_path": str(markdown_path),
         "json_path": str(json_path),
         "stale": stale,
+        "generated_at": generated_at.isoformat(),
+        "sources_ok": sorted(successful_sources),
         **delivery,
     }
 
@@ -538,6 +681,15 @@ def serve(
             "Install them with: [bold]uv sync --extra gui[/bold]"
         )
         raise typer.Exit(code=1) from error
+
+    # The operator run controls are a mutation surface, so they stay behind the
+    # existing authorizer gate. We install the authorizer here and only here:
+    # this is the one entry point that has already proved the server is bound to
+    # loopback (require_loopback_host above is fail-closed). Any other way of
+    # hosting newsroom.webapp:app — the container image included — leaves
+    # app.state unset and /api/run keeps answering 403.
+    web_app.state.phase0_mutation_authorizer = lambda: True
+    web_app.state.bind_host = host
 
     console.print(f"Dashboard at [bold]http://{host}:{port}[/bold]  (Ctrl+C to stop)")
     uvicorn.run(web_app, host=host, port=port, log_level=settings.log_level.lower())
