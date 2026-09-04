@@ -13,6 +13,7 @@ from newsroom import cli, database, webapp
 from newsroom.config import settings
 from newsroom.database import to_row
 from newsroom.models import Confidence, NewsEvent, PromotionType, Source
+from newsroom.sources import epic
 
 
 @pytest.fixture
@@ -26,6 +27,14 @@ def env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
     # runs. notify_* no-ops when there's no webhook, so this makes the tests
     # network-silent regardless of what's configured locally.
     monkeypatch.setattr(settings, "discord_webhook_url", None)
+    # /api/run drives the real pipeline, which also trawls Steam for breakouts
+    # and deals. Those are live HTTP calls that have nothing to do with what
+    # this file asserts, so switch them off and keep the suite hermetic.
+    monkeypatch.setattr(settings, "enable_breakouts", False)
+    monkeypatch.setattr(settings, "enable_deals", False)
+    # Same for Epic's upcoming heads-up, which is fetched directly rather than
+    # via _SOURCES and would otherwise stay a live call.
+    monkeypatch.setattr(epic, "fetch_upcoming_free_games", lambda: [])
     database.reset_engine()
     database.init_db()
     yield tmp_path
@@ -56,7 +65,9 @@ def test_index_serves_html(env: Path, client: TestClient) -> None:
     resp = client.get("/")
     assert resp.status_code == 200
     assert "Newsroom" in resp.text
-    assert "Read-only Phase 0 dashboard" in resp.text
+    # The page states its own security posture; the enforcement of it is
+    # asserted separately by the 403 tests below.
+    assert "Loopback-only operator console" in resp.text
 
 
 def test_state_reflects_stored_events(env: Path, client: TestClient) -> None:
