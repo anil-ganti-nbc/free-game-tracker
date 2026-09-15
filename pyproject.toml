@@ -42,7 +42,7 @@ gui = [
 newsroom = "newsroom.main:app"
 
 [tool.hatch.build.targets.wheel]
-packages = ["newsroom"]
+packages = ["newsroom", "clank_reddit"]
 
 # ---------------------------------------------------------------------------
 # Tooling

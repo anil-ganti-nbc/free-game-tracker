@@ -49,12 +49,15 @@ from newsroom.sources import (
     geforce_now,
     gog,
     playstation_plus,
+    reddit,
     steam,
     steam_breakouts,
     steam_deals,
     xbox_game_pass,
 )
 from newsroom.sources._http import SourceError
+
+DISCOVERY_SOURCES = reddit.SOURCES
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +74,10 @@ def require_loopback_host(host: str) -> None:
     except ValueError:
         loopback = host.lower() == "localhost"
     if not loopback:
-        raise ValueError("Newsroom has no authenticated remote dashboard profile; host must be loopback")
+        raise ValueError(
+            "Newsroom has no authenticated remote dashboard profile; host must be loopback"
+        )
+
 
 #: The sources wired up so far. Grows as sensors are added.
 _SOURCES = {
@@ -202,6 +208,19 @@ def source_registry() -> list[SourceSpec]:
                 disabled_reason="not wired into the pipeline",
             )
         )
+    for name, community in DISCOVERY_SOURCES.items():
+        specs.append(
+            SourceSpec(
+                name=name,
+                label=f"Reddit r/{community}",
+                kind="discovery",
+                scope="Experimental discovery evidence; unverified; delivery blocked.",
+                wired=True,
+                disabled_reason=None
+                if settings.enable_reddit_discovery
+                else "NEWSROOM_ENABLE_REDDIT_DISCOVERY is false",
+            )
+        )
     return specs
 
 
@@ -239,6 +258,8 @@ def _fetch_all_sources(selected: list[str] | None) -> tuple[list[NewsEvent], set
     events: list[NewsEvent] = []
     successful_sources = set()
     for name in names:
+        if name in DISCOVERY_SOURCES:
+            continue  # handled by the domain discovery pipeline
         fetcher = _SOURCES.get(name)
         if fetcher is None:
             console.print(f"[yellow]Unknown source skipped:[/yellow] {name}")
@@ -523,6 +544,20 @@ def run_pipeline(
     """
     init_db()
     generated_at = datetime.now(UTC)
+    discovery_results = {}
+    if include_sources and settings.enable_reddit_discovery:
+        from newsroom.discovery import collect
+
+        for name in DISCOVERY_SOURCES:
+            if selected is not None and name not in selected:
+                continue
+            try:
+                discovery_results[name] = collect(
+                    name, persist=persist, code_revision=settings.source_revision or "UNKNOWN"
+                )
+            except Exception as exc:
+                logger.exception("Discovery source %s failed", name)
+                discovery_results[name] = {"error": str(exc), "delivery": "blocked"}
 
     if include_sources:
         current_events, successful_sources = _fetch_all_sources(selected)
@@ -562,6 +597,7 @@ def run_pipeline(
         "stale": stale,
         "generated_at": generated_at.isoformat(),
         "sources_ok": sorted(successful_sources),
+        "discovery": discovery_results,
         **delivery,
     }
 

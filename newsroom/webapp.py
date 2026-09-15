@@ -559,7 +559,7 @@ def _plan_run(requested: list[str] | None) -> dict[str, Any]:
 
     # Read through the module so a test (or a future dynamic registration) that
     # rebinds cli._SOURCES is honoured rather than shadowed by an import-time copy.
-    event_sources = [n for n in names if n in cli._SOURCES]
+    event_sources = [n for n in names if n in cli._SOURCES or n in cli.DISCOVERY_SOURCES]
     return {
         "scope": names,
         "selected": event_sources or None,
@@ -830,6 +830,7 @@ small{display:block;color:var(--muted);font-size:var(--fs-label);font-weight:400
     <a class="nav" href="#subscriptions">Subscription catalog<span class="count" id="n-subs"></span></a>
     <a class="nav" href="#breakouts">Breakout releases<span class="count" id="n-break"></span></a>
     <a class="nav" href="#deals">Steam deals<span class="count" id="n-deals"></span></a>
+    <a class="nav" href="/discovery">Discovery evidence</a>
     <a class="nav" href="#upcoming">Upcoming<span class="count" id="n-up"></span></a>
   </nav>
   <main class="main"><div class="wrap">
@@ -1235,3 +1236,37 @@ setInterval(() => { if(!RUNNING) load(); }, 30000);
 </body>
 </html>
 """
+
+
+@app.get("/api/discovery")
+def api_discovery(include_baseline: bool = False) -> dict[str, Any]:
+    from newsroom.database import load_discovery_observations
+    return {"delivery": "blocked", "novelty": "unconfirmed",
+            "observations": load_discovery_observations(include_baseline=include_baseline)}
+
+
+@app.get("/discovery", response_class=HTMLResponse)
+def discovery_page(include_baseline: bool = False) -> str:
+    from html import escape
+    from newsroom.database import load_discovery_observations
+    rows = load_discovery_observations(include_baseline=include_baseline)
+    cards = []
+    for row in rows:
+        links = row["evidence"][-1].get("outbound_links", [])
+        provenance = " ".join(f'<a href="{escape(u, quote=True)}" rel="noreferrer">Linked evidence</a>'
+                              for u in links)
+        cards.append(f'<article class="panel"><div class="panel-body"><h2 class="panel-title"><a href="{escape(row["url"], quote=True)}">'
+                     f'{escape(row["title"])}</a></h2><p>{escape(row["classification"])} · '
+                     f'{"Baseline" if row["baseline"] else "Observation; novelty unconfirmed"}'
+                     f'</p>{provenance}<p>Related observations: '
+                     f'{escape(chr(44).join(row["related_observation_ids"])) or "none in this view"}'
+                     f'</p></div></article>')
+    return ('<!doctype html><html lang="en"><meta charset="utf-8"><title>Discovery evidence</title>'
+            '<style>' + _PAGE.split('<style>', 1)[1].split('</style>', 1)[0] + '</style>'
+            '<main class="main"><div class="wrap"><a href="/">Back to collector</a>'
+            '<h1 class="page-title">Discovery evidence</h1>'
+            '<p>Community reports are unverified. Delivery is blocked. Reddit publication time '
+            'does not establish a game announcement or a live giveaway.</p>'
+            '<p><a href="/discovery">Exclude baseline</a> · '
+            '<a href="/discovery?include_baseline=true">Inspect full history</a></p>'
+            + (''.join(cards) or '<p>No observations in this view.</p>') + '</div></main></html>')
