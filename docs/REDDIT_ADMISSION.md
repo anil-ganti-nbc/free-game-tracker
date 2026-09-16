@@ -96,3 +96,12 @@ r/GamingLeaksAndRumours source; exact results are recorded in the PR checks.
 Tests used Python 3.14 and temporary databases. GitHub CI targets Python 3.12.
 Both built wheels contain byte-identical clank_reddit code. No live Reddit
 collection, production database migration, deployment, or notification occurred.
+
+Current review amendment: the vendored transport is canonical `clank_reddit`
+v1.0.1 (manifest SHA-256
+`4f0e63595213f95814d41db5f7954cab253da4f078aa33657932a00642f1dbc6`).
+The targeted Reddit suite passes 15/15. The full local suite passes 269/270;
+the remaining `test_mixed_malformed_pubdates` failure is inherited PlayStation
+fixture behavior. The preceding GitHub run reported that same PlayStation
+fixture on Linux and Windows. A `DuplicateHandle` failure was observed only in
+a separate local/environment run and is not the GitHub Windows failure.

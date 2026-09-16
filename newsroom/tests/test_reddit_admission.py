@@ -45,6 +45,11 @@ def get_page(
     return lambda _: (200, listing(ids=ids, title=title))
 
 
+def combined_listing(*feeds: str) -> str:
+    entries = [feed.split(">", 1)[1].rsplit("</feed>", 1)[0] for feed in feeds]
+    return '<feed xmlns="http://www.w3.org/2005/Atom">' + "".join(entries) + "</feed>"
+
+
 def test_baseline_restart_absence_and_reordering(isolated: None) -> None:
     source = "reddit_free_game_findings"
     assert collect(source, get=get_page())["baseline"]
@@ -69,6 +74,46 @@ def test_failed_fetch_retains_state_and_does_not_admit(isolated: None) -> None:
     with db.session_scope() as session:
         runs = list(session.scalars(select(db.DiscoveryRunRow).order_by(db.DiscoveryRunRow.id)))
         assert [run.status for run in runs] == ["failed", "ok"]
+
+
+def test_mixed_feed_persists_valid_submission_and_skips_unusable_entries(
+    isolated: None,
+) -> None:
+    source = "reddit_free_game_findings"
+    mixed = combined_listing(
+        listing(ids=("valid",)),
+        listing(ids=("deleted",), title="[deleted]"),
+        listing(ids=("removed",), title="[removed]"),
+    )
+
+    result = collect(source, get=lambda _: (200, mixed))
+
+    assert result["baseline"]
+    rows = db.load_discovery_observations(include_baseline=True)
+    assert [row["external_id"] for row in rows] == ["t3_valid"]
+    with db.session_scope() as session:
+        runs = list(session.scalars(select(db.DiscoveryRunRow)))
+        assert [run.status for run in runs] == ["ok"]
+
+
+def test_all_unusable_feed_fails_without_replacing_previous_state(
+    isolated: None,
+) -> None:
+    source = "reddit_free_game_findings"
+    assert collect(source, get=get_page(ids=("baseline",)))["baseline"]
+    before = db.load_discovery_observations(include_baseline=True)
+    unusable = combined_listing(
+        listing(ids=("deleted",), title="[deleted]"),
+        listing(ids=("removed",), title="[removed]"),
+    )
+
+    with pytest.raises(RedditUnavailable, match="no usable submissions"):
+        collect(source, get=lambda _: (200, unusable))
+
+    assert db.load_discovery_observations(include_baseline=True) == before
+    with db.session_scope() as session:
+        runs = list(session.scalars(select(db.DiscoveryRunRow).order_by(db.DiscoveryRunRow.id)))
+        assert [run.status for run in runs] == ["ok", "failed"]
 
 
 @pytest.mark.parametrize("title", ["Weekly discussion", "[PSA] Read this", "Request thread"])
