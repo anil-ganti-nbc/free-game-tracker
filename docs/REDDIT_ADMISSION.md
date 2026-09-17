@@ -9,11 +9,10 @@ production promotion, verified Reddit access, or authoritative source resolution
 - OEM Radar: r/GamingLaptops and r/MiniPCs through native evidence_items,
   evidence_events, crawler_runs, run locking, and its existing fetcher.
   Community provenance is explicit; no product model, NEW_PRODUCT, or outbox entry.
-- Free Game Tracker: r/FreeGameFindings is admitted in this tranche. Its source
-  registry/manual GUI dispatch and SQLite transaction/lock machinery own
-  collection. Discovery is separate from offers. The preserved
-  r/GamingLeaksAndRumours archaeology is also FGT-owned, but remains outside
-  this PR and will be admitted separately as the FGT INTEL lane.
+- Free Game Tracker: r/FreeGameFindings remains the discovery tranche already
+  on main. This increment admits preserved r/GamingLeaksAndRumours archaeology
+  as the FGT INTEL lane. INTEL reuses discovery tables and transport v1.0.1,
+  not giveaway/promotion classifiers. Collection stays disabled.
 - Semiconductor Intelligence PR #5 is already merged; this tranche does not
   register, schedule, or expand that separate r/hardware pilot.
 
@@ -61,6 +60,9 @@ The HTTP transport remains consumer-owned; actual access requires a manual probe
   unclassified/non-game posts. Claims remain unverified. Keyword classification
   is deliberately conservative and needs real soak/editorial review before any
   delivery or broader claim of coverage.
+- FGT INTEL classification reconstructs the archaeology rumour rules onto
+  current main: game_rumour_unverified vs non_leak_or_unclassified. INTEL is
+  not a giveaway, promotion, or FreeGameFindings claim.
 - FGT's default discovery query excludes baseline and unclassified records.
   Explicit history inspection includes them without calling them novel.
 - OEM evidence remains outside the product novelty stream at all times.
@@ -68,10 +70,13 @@ The HTTP transport remains consumer-owned; actual access requires a manual probe
 ## Manual validation and rollback
 
 Defaults are disabled: OEM radar.yaml reddit_discovery_enabled=false;
-FGT NEWSROOM_ENABLE_REDDIT_DISCOVERY=false. To test after review, use an isolated
-lane/database and the existing manual GUI collection controls, with collection
-opted in. OEM uses reddit_min_interval_s (default 1800) and native source_due.
-FGT shows the FreeGameFindings discovery source in its existing source registry. Opening the
+FGT NEWSROOM_ENABLE_REDDIT_DISCOVERY=false and NEWSROOM_ENABLE_REDDIT_INTEL=false.
+The two FGT flags are independent: enabling FreeGameFindings does not enable
+INTEL, and enabling INTEL does not enable FreeGameFindings. To test after
+review, use an isolated lane/database and the existing manual GUI collection
+controls, with collection opted in. OEM uses reddit_min_interval_s (default
+1800) and native source_due. FGT shows FreeGameFindings as discovery and
+GamingLeaksAndRumours as INTEL in the existing source registry. Opening the
 GUI/evidence view does not fetch Reddit. No scheduler was created or enabled.
 
 Before any existing database upgrade, take a SQLite Connection.backup() snapshot
@@ -82,7 +87,7 @@ or remove runtime state to make a rollback work. This task used temporary test
 DBs only; existing local and remote runtime DBs were not migrated.
 
 Live soak, operator evidence review, and a durable/authorized delivery path are
-still required before notification admission. Neither config flag grants it.
+still required before notification admission. Neither FGT config flag grants it.
 Do not deploy to Hetzner from this local work.
 
 Coverage limit: the bounded 100-entry listing is not a historical backfill.
@@ -92,9 +97,9 @@ admission increment. The existing r/hardware pilot is not expanded here.
 
 ## Validation performed locally
 
-The split branch was revalidated after separating the future FGT INTEL
-admission from this FreeGameFindings tranche; exact results are recorded in
-the PR checks.
+This INTEL branch reconstructs r/GamingLeaksAndRumours from
+archive/wave2a-reddit-mixed-archaeology 962532b against current main 23c710c
+without regressing the FreeGameFindings admission or the v1.0.1 transport.
 Tests used Python 3.14 and temporary databases. GitHub CI targets Python 3.12.
 Both built wheels contain byte-identical clank_reddit code. No live Reddit
 collection, production database migration, deployment, or notification occurred.
