@@ -589,3 +589,74 @@ def sync_events(events: list[NewsEvent], successful_sources: set[str] | None = N
                 session.add(to_row(event))
             else:
                 _apply_update(existing, event)
+
+
+class DiscoveryRunRow(Base):
+    """Invocation/outcome for domain discovery, independent of delivery."""
+
+    __tablename__ = "discovery_runs"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    source: Mapped[str] = mapped_column(String, index=True)
+    started_at: Mapped[datetime] = mapped_column(UtcDateTime)
+    finished_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
+    status: Mapped[str] = mapped_column(String, default="running")
+    baseline: Mapped[bool] = mapped_column(Boolean)
+    evidence: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+
+
+class DiscoveryObservationRow(Base):
+    """Durable discovery evidence; unlike offers, never expired by page absence."""
+
+    __tablename__ = "discovery_observations"
+    key: Mapped[str] = mapped_column(String, primary_key=True)
+    source: Mapped[str] = mapped_column(String, index=True)
+    external_id: Mapped[str] = mapped_column(String)
+    title: Mapped[str] = mapped_column(String)
+    url: Mapped[str] = mapped_column(String)
+    classification: Mapped[str] = mapped_column(String)
+    baseline: Mapped[bool] = mapped_column(Boolean)
+    first_seen: Mapped[datetime] = mapped_column(UtcDateTime)
+    last_seen: Mapped[datetime] = mapped_column(UtcDateTime)
+    # Full source revisions retained; observation identity never uses article URL.
+    evidence: Mapped[list[dict[str, Any]]] = mapped_column(JSON)
+
+
+def load_discovery_observations(*, include_baseline: bool = False) -> list[dict[str, Any]]:
+    query = select(DiscoveryObservationRow)
+    if not include_baseline:
+        query = query.where(
+            DiscoveryObservationRow.baseline.is_(False),
+            DiscoveryObservationRow.classification == "giveaway_claim_unverified",
+        )
+    query = query.order_by(DiscoveryObservationRow.first_seen.desc()).limit(200)
+    with session_scope() as session:
+        rows: list[dict[str, Any]] = [
+            {
+                "source": r.source,
+                "external_id": r.external_id,
+                "title": r.title,
+                "url": r.url,
+                "classification": r.classification,
+                "baseline": r.baseline,
+                "first_seen": r.first_seen.isoformat(),
+                "novelty": "unconfirmed",
+                "delivery": "blocked",
+                "evidence": r.evidence,
+            }
+            for r in session.scalars(query)
+        ]
+
+        related: dict[str, list[str]] = {}
+        for row in rows:
+            for url in row["evidence"][-1].get("related_url_keys", []):
+                related.setdefault(url, []).append(row["external_id"])
+        for row in rows:
+            row["related_observation_ids"] = sorted(
+                {
+                    identity
+                    for url in row["evidence"][-1].get("related_url_keys", [])
+                    for identity in related[url]
+                    if identity != row["external_id"]
+                }
+            )
+        return rows

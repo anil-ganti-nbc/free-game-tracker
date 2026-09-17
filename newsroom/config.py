@@ -33,6 +33,8 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    enable_reddit_discovery: bool = False
+
     # --- Storage ------------------------------------------------------------
     database_path: Path = Field(
         default=PROJECT_ROOT / "newsroom.db",
