@@ -9,10 +9,11 @@ production promotion, verified Reddit access, or authoritative source resolution
 - OEM Radar: r/GamingLaptops and r/MiniPCs through native evidence_items,
   evidence_events, crawler_runs, run locking, and its existing fetcher.
   Community provenance is explicit; no product model, NEW_PRODUCT, or outbox entry.
-- Free Game Tracker: r/FreeGameFindings only. Its source registry/manual GUI
-  dispatch and SQLite transaction/lock machinery own collection. Discovery is
-  separate from offers. The preserved r/GamingLeaksAndRumours archaeology is
-  explicitly outside this tranche and this repository's domain ownership.
+- Free Game Tracker: r/FreeGameFindings is admitted in this tranche. Its source
+  registry/manual GUI dispatch and SQLite transaction/lock machinery own
+  collection. Discovery is separate from offers. The preserved
+  r/GamingLeaksAndRumours archaeology is also FGT-owned, but remains outside
+  this PR and will be admitted separately as the FGT INTEL lane.
 - Semiconductor Intelligence PR #5 is already merged; this tranche does not
   register, schedule, or expand that separate r/hardware pilot.
 
@@ -91,8 +92,9 @@ admission increment. The existing r/hardware pilot is not expanded here.
 
 ## Validation performed locally
 
-The split branch was revalidated after removing the out-of-domain
-r/GamingLeaksAndRumours source; exact results are recorded in the PR checks.
+The split branch was revalidated after separating the future FGT INTEL
+admission from this FreeGameFindings tranche; exact results are recorded in
+the PR checks.
 Tests used Python 3.14 and temporary databases. GitHub CI targets Python 3.12.
 Both built wheels contain byte-identical clank_reddit code. No live Reddit
 collection, production database migration, deployment, or notification occurred.
