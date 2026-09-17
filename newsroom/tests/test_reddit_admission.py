@@ -256,3 +256,110 @@ def test_additive_upgrade_preserves_existing_offers(
     assert [row.title for row in db.load_all_events()] == ["Existing offer"]
     assert db.load_discovery_observations(include_baseline=True) == []
     db.reset_engine()
+
+
+def intel_listing(
+    ids: tuple[str, ...] = ("a1",),
+    title: str = "GTA 6 gameplay leaked",
+) -> str:
+    return listing("GamingLeaksAndRumours", ids, title)
+
+
+def intel_page(
+    ids: tuple[str, ...] = ("a1",),
+    title: str = "GTA 6 gameplay leaked",
+) -> Callable[[str], tuple[int, str]]:
+    return lambda _: (200, intel_listing(ids, title))
+
+
+@pytest.mark.parametrize(
+    "title",
+    ["Weekly discussion", "Any free game today?", "GPU restock", "PS6 handheld"],
+)
+def test_non_leaks_are_not_rumours(title: str) -> None:
+    post = parse_listing(intel_listing(title=title), "GamingLeaksAndRumours")[0]
+    assert classify(post) == "non_leak_or_unclassified"
+
+
+def test_game_leak_is_unverified_rumour_not_a_giveaway() -> None:
+    post = parse_listing(intel_listing(), "GamingLeaksAndRumours")[0]
+    assert classify(post) == "game_rumour_unverified"
+
+
+def test_intel_baseline_and_rumour_view(isolated: None) -> None:
+    source = "reddit_gaming_leaks"
+    assert collect(source, get=intel_page())["baseline"]
+    assert db.load_discovery_observations() == []
+    assert collect(source, get=intel_page(("a2", "a1")))["new_observations"] == 1
+    rows = db.load_discovery_observations()
+    assert len(rows) == 1
+    assert rows[0]["classification"] == "game_rumour_unverified"
+    assert rows[0]["source"] == "reddit_gaming_leaks"
+    assert rows[0]["delivery"] == "blocked"
+    assert db.load_all_events() == []
+
+
+def test_intel_registry_default_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    from newsroom.cli import source_registry
+
+    monkeypatch.setattr(settings, "enable_reddit_intel", False)
+    specs = [spec for spec in source_registry() if spec.kind == "intel"]
+    assert [spec.name for spec in specs] == ["reddit_gaming_leaks"]
+    assert not specs[0].runnable
+
+
+def test_intel_flag_does_not_enable_freegamefindings(
+    isolated: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from newsroom import cli, notify
+    from newsroom.sources import reddit
+    from newsroom.webapp import _plan_run, discovery_page
+
+    monkeypatch.setattr(settings, "enable_reddit_discovery", False)
+    monkeypatch.setattr(settings, "enable_reddit_intel", True)
+    monkeypatch.setattr(
+        reddit,
+        "fetch",
+        lambda source, get=None: parse_listing(intel_listing(), "GamingLeaksAndRumours"),
+    )
+
+    def forbidden(*args: object, **kwargs: object) -> bool:
+        raise AssertionError("INTEL reached Discord")
+
+    monkeypatch.setattr(notify, "post_discord", forbidden)
+    plan = _plan_run(["reddit_gaming_leaks"])
+    assert plan["selected"] == ["reddit_gaming_leaks"]
+    summary = cli.run_pipeline(
+        selected=plan["selected"],
+        include_breakouts=False,
+        include_deals=False,
+        do_notify=True,
+    )
+    assert "reddit_free_game_findings" not in summary["discovery"]
+    assert summary["discovery"]["reddit_gaming_leaks"]["baseline"]
+    assert summary["new"] == 0
+    assert db.load_all_events() == []
+    assert "unverified rumours, not free-game" in discovery_page(include_baseline=True)
+
+
+def test_freegamefindings_flag_does_not_enable_intel(
+    isolated: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from newsroom import cli
+    from newsroom.sources import reddit
+
+    monkeypatch.setattr(settings, "enable_reddit_discovery", True)
+    monkeypatch.setattr(settings, "enable_reddit_intel", False)
+    monkeypatch.setattr(
+        reddit,
+        "fetch",
+        lambda source, get=None: parse_listing(listing(), "FreeGameFindings"),
+    )
+    summary = cli.run_pipeline(
+        selected=["reddit_free_game_findings"],
+        include_breakouts=False,
+        include_deals=False,
+        do_notify=False,
+    )
+    assert "reddit_gaming_leaks" not in summary["discovery"]
+    assert summary["discovery"]["reddit_free_game_findings"]["baseline"]

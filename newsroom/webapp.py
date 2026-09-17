@@ -559,7 +559,11 @@ def _plan_run(requested: list[str] | None) -> dict[str, Any]:
 
     # Read through the module so a test (or a future dynamic registration) that
     # rebinds cli._SOURCES is honoured rather than shadowed by an import-time copy.
-    event_sources = [n for n in names if n in cli._SOURCES or n in cli.DISCOVERY_SOURCES]
+    event_sources = [
+        n
+        for n in names
+        if n in cli._SOURCES or n in cli.DISCOVERY_SOURCES or n in cli.INTEL_SOURCES
+    ]
     return {
         "scope": names,
         "selected": event_sources or None,
@@ -1255,8 +1259,9 @@ def discovery_page(include_baseline: bool = False) -> str:
         links = row["evidence"][-1].get("outbound_links", [])
         provenance = " ".join(f'<a href="{escape(u, quote=True)}" rel="noreferrer">Linked evidence</a>'
                               for u in links)
+        lane = "INTEL" if row["source"] == "reddit_gaming_leaks" else "Discovery"
         cards.append(f'<article class="panel"><div class="panel-body"><h2 class="panel-title"><a href="{escape(row["url"], quote=True)}">'
-                     f'{escape(row["title"])}</a></h2><p>{escape(row["classification"])} · '
+                     f'{escape(row["title"])}</a></h2><p>{escape(lane)} · {escape(row["classification"])} · '
                      f'{"Baseline" if row["baseline"] else "Observation; novelty unconfirmed"}'
                      f'</p>{provenance}<p>Related observations: '
                      f'{escape(chr(44).join(row["related_observation_ids"])) or "none in this view"}'
@@ -1266,7 +1271,8 @@ def discovery_page(include_baseline: bool = False) -> str:
             '<main class="main"><div class="wrap"><a href="/">Back to collector</a>'
             '<h1 class="page-title">Discovery evidence</h1>'
             '<p>Community reports are unverified. Delivery is blocked. Reddit publication time '
-            'does not establish a game announcement or a live giveaway.</p>'
+            'does not establish a game announcement or a live giveaway. INTEL observations are '
+            'unverified rumours, not free-game or promotion events.</p>'
             '<p><a href="/discovery">Exclude baseline</a> · '
             '<a href="/discovery?include_baseline=true">Inspect full history</a></p>'
             + (''.join(cards) or '<p>No observations in this view.</p>') + '</div></main></html>')
