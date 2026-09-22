@@ -57,7 +57,8 @@ from newsroom.sources import (
 )
 from newsroom.sources._http import SourceError
 
-DISCOVERY_SOURCES = reddit.SOURCES
+DISCOVERY_SOURCES = reddit.FGF_SOURCES
+INTEL_SOURCES = reddit.INTEL_SOURCES
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +111,7 @@ class SourceSpec:
 
     name: str
     label: str
-    kind: str  # "giveaway" | "subscription" | "breakout" | "deal"
+    kind: str  # "giveaway" | "subscription" | "breakout" | "deal" | "discovery" | "intel"
     scope: str
     wired: bool
     disabled_reason: str | None = None
@@ -221,6 +222,22 @@ def source_registry() -> list[SourceSpec]:
                 else "NEWSROOM_ENABLE_REDDIT_DISCOVERY is false",
             )
         )
+    for name, community in INTEL_SOURCES.items():
+        specs.append(
+            SourceSpec(
+                name=name,
+                label=f"INTEL r/{community}",
+                kind="intel",
+                scope=(
+                    "FGT INTEL lane; unverified game rumour evidence; "
+                    "not a giveaway or promotion."
+                ),
+                wired=True,
+                disabled_reason=None
+                if settings.enable_reddit_intel
+                else "NEWSROOM_ENABLE_REDDIT_INTEL is false",
+            )
+        )
     return specs
 
 
@@ -258,8 +275,8 @@ def _fetch_all_sources(selected: list[str] | None) -> tuple[list[NewsEvent], set
     events: list[NewsEvent] = []
     successful_sources = set()
     for name in names:
-        if name in DISCOVERY_SOURCES:
-            continue  # handled by the domain discovery pipeline
+        if name in DISCOVERY_SOURCES or name in INTEL_SOURCES:
+            continue  # handled by the domain discovery / INTEL pipelines
         fetcher = _SOURCES.get(name)
         if fetcher is None:
             console.print(f"[yellow]Unknown source skipped:[/yellow] {name}")
@@ -545,10 +562,16 @@ def run_pipeline(
     init_db()
     generated_at = datetime.now(UTC)
     discovery_results = {}
-    if include_sources and settings.enable_reddit_discovery:
+    if include_sources:
         from newsroom.discovery import collect
 
-        for name in DISCOVERY_SOURCES:
+        reddit_lanes: list[tuple[str, bool]] = [
+            *((name, settings.enable_reddit_discovery) for name in DISCOVERY_SOURCES),
+            *((name, settings.enable_reddit_intel) for name in INTEL_SOURCES),
+        ]
+        for name, enabled in reddit_lanes:
+            if not enabled:
+                continue
             if selected is not None and name not in selected:
                 continue
             try:

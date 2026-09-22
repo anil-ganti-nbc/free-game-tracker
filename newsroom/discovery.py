@@ -49,12 +49,17 @@ def collect(
             for post in posts:
                 key = source + ":" + post.external_id
                 row = session.get(db.DiscoveryObservationRow, key)
+                policy = (
+                    "fgt-reddit-intel-v1"
+                    if source in reddit.INTEL_SOURCES
+                    else "fgt-reddit-discovery-v1"
+                )
                 evidence = post.evidence() | {
                     "run_id": run_id,
                     "source_id": source,
                     "code_revision": code_revision,
                     "collected_at": now.isoformat(),
-                    "classification_policy": "fgt-reddit-discovery-v1",
+                    "classification_policy": policy,
                 }
                 if row is None:
                     row = db.DiscoveryObservationRow(

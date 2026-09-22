@@ -626,7 +626,9 @@ def load_discovery_observations(*, include_baseline: bool = False) -> list[dict[
     if not include_baseline:
         query = query.where(
             DiscoveryObservationRow.baseline.is_(False),
-            DiscoveryObservationRow.classification == "giveaway_claim_unverified",
+            DiscoveryObservationRow.classification.in_(
+                ("giveaway_claim_unverified", "game_rumour_unverified")
+            ),
         )
     query = query.order_by(DiscoveryObservationRow.first_seen.desc()).limit(200)
     with session_scope() as session:

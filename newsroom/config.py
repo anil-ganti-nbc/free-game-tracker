@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     )
 
     enable_reddit_discovery: bool = False
+    enable_reddit_intel: bool = False
 
     # --- Storage ------------------------------------------------------------
     database_path: Path = Field(
