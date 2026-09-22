@@ -52,7 +52,7 @@ def collect(
                 policy = (
                     "fgt-reddit-intel-v1"
                     if source in reddit.INTEL_SOURCES
-                    else "fgt-reddit-discovery-v1"
+                    else "fgt-reddit-discovery-v2"
                 )
                 evidence = post.evidence() | {
                     "run_id": run_id,

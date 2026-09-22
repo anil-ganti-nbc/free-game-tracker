@@ -15,11 +15,16 @@ FGF_SOURCES = {"reddit_free_game_findings": "FreeGameFindings"}
 INTEL_SOURCES = {"reddit_gaming_leaks": "GamingLeaksAndRumours"}
 SOURCES = {**FGF_SOURCES, **INTEL_SOURCES}
 
+# A FreeGameFindings claim is a bounded content tag, not membership in the
+# subreddit and not the word "giveaway". (Other), [PSA], and aggregate threads
+# stay closed. DLC uses the same tag grammar as Game and is game content.
+_FGF_CONTENT_MARKER = re.compile(r"\[\s*(?:game|dlc)\s*\]|\(\s*(?:game|dlc)\s*\)")
+
 
 def classify(post: Submission) -> str:
     title = post.title.lower()
     if post.subreddit == "FreeGameFindings":
-        if re.search(r"\[game\]", title):
+        if _FGF_CONTENT_MARKER.search(title):
             return "giveaway_claim_unverified"
         return "non_game_or_unclassified"
     if post.subreddit != "GamingLeaksAndRumours":
