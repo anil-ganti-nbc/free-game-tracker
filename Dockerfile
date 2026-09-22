@@ -26,6 +26,7 @@ RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin clank
 
 COPY pyproject.toml README.md requirements.container.lock ./
 COPY newsroom ./newsroom
+COPY clank_reddit ./clank_reddit
 COPY scripts ./scripts
 COPY alembic.ini ./alembic.ini
 COPY alembic ./alembic
