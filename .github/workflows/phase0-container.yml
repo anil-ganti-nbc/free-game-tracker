@@ -19,3 +19,8 @@ jobs:
         run: docker build --tag phase0-local:${{ github.sha }} .
       - name: Inspect built image
         run: docker image inspect phase0-local:${{ github.sha }} --format '{{.Id}}'
+      - name: Execute built image
+        run: docker run --rm phase0-local:${{ github.sha }} version
+      - name: Import installed clank_reddit from the built image
+        run: |
+          docker run --rm --entrypoint python -w /tmp "phase0-local:${{ github.sha }}" -c 'import clank_reddit, newsroom; path = clank_reddit.__file__; assert path.startswith("/usr/local/lib/python3.12/site-packages/clank_reddit/"), path; print(path); print(newsroom.__file__)'
