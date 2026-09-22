@@ -116,10 +116,71 @@ def test_all_unusable_feed_fails_without_replacing_previous_state(
         assert [run.status for run in runs] == ["ok", "failed"]
 
 
-@pytest.mark.parametrize("title", ["Weekly discussion", "[PSA] Read this", "Request thread"])
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Weekly discussion",
+        "[PSA] Read this",
+        "Request thread",
+        "Exiled Giveaways and Itch.io Mega Threads",
+        "FGF Giveaway: SilverStone's FHL120 Industrial PC Fans!",
+        "[GOG] (Other) Video Game Show",
+        "[PC/Console/Mobile] (Other) Aniimo - Game Pack",
+        "[PSA] Botany Manor (EGS) is complimentary with Amazon Prime",
+    ],
+)
 def test_non_game_posts_are_not_giveaway_claims(title: str) -> None:
     post = parse_listing(listing(title=title), "FreeGameFindings")[0]
     assert classify(post) == "non_game_or_unclassified"
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "[Steam] [Game] Example",
+        "[game] lowercase marker",
+        "[ Game ] spaced marker",
+        "( Game ) spaced parenthesis",
+        "[Epic Games] (Game) Alone With You",
+        "[EPIC GAMES MOBILE] (Game) Alone With You",
+        "[Itch.io](Game) Liminal Space Holiday",
+        "[Steam] (DLC) Dying Light: The Beast - Discharge Weapon Pack",
+        "[ Epic ] ( dlc ) spaced dlc marker",
+    ],
+)
+def test_structured_content_markers_are_unverified_claims(title: str) -> None:
+    post = parse_listing(listing(title=title), "FreeGameFindings")[0]
+    assert classify(post) == "giveaway_claim_unverified"
+
+
+def test_production_baseline_corpus_matches_reviewed_v2_labels() -> None:
+    path = Path(__file__).parent / "fixtures" / "freegamefindings_baseline_titles.tsv"
+    rows = [
+        line.split("\t", 1)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line
+    ]
+    assert len(rows) == 100
+    positives = negatives = changed = 0
+    for expected, title in rows:
+        post = parse_listing(listing(title=title), "FreeGameFindings")[0]
+        assert classify(post) == expected
+        v1 = (
+            "giveaway_claim_unverified"
+            if "[game]" in title.lower()
+            else "non_game_or_unclassified"
+        )
+        if v1 != expected:
+            changed += 1
+            assert v1 == "non_game_or_unclassified"
+            assert expected == "giveaway_claim_unverified"
+        if expected == "giveaway_claim_unverified":
+            positives += 1
+        else:
+            negatives += 1
+    assert positives == 76
+    assert negatives == 24
+    assert changed == 76
 
 
 def test_free_game_claim_is_not_confirmed_offer() -> None:
@@ -131,6 +192,22 @@ def test_dry_run_does_not_persist(isolated: None) -> None:
     collect("reddit_free_game_findings", get=get_page(), persist=False)
     with db.session_scope() as session:
         assert list(session.scalars(select(db.DiscoveryRunRow))) == []
+
+
+def test_new_evidence_uses_discovery_v2_and_leaves_intel_policy(isolated: None) -> None:
+    collect("reddit_free_game_findings", get=get_page())
+    collect("reddit_gaming_leaks", get=intel_page())
+    with db.session_scope() as session:
+        rows = list(session.scalars(select(db.DiscoveryObservationRow)))
+    policies = {row.source: row.evidence[0]["classification_policy"] for row in rows}
+    assert policies == {
+        "reddit_free_game_findings": "fgt-reddit-discovery-v2",
+        "reddit_gaming_leaks": "fgt-reddit-intel-v1",
+    }
+    visible = db.load_discovery_observations(include_baseline=True)
+    assert visible
+    assert all(row["delivery"] == "blocked" for row in visible)
+    assert db.load_all_events() == []
 
 
 def test_registry_default_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
