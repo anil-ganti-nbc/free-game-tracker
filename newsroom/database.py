@@ -621,6 +621,28 @@ class DiscoveryObservationRow(Base):
     evidence: Mapped[list[dict[str, Any]]] = mapped_column(JSON)
 
 
+class DiscoveryDeliveryRow(Base):
+    """One durable, prospective community-lead intent per observation."""
+
+    __tablename__ = "discovery_delivery_outbox"
+    observation_key: Mapped[str] = mapped_column(String, primary_key=True)
+    source: Mapped[str] = mapped_column(String, index=True)
+    external_id: Mapped[str] = mapped_column(String)
+    classification: Mapped[str] = mapped_column(String)
+    classification_policy: Mapped[str] = mapped_column(String)
+    first_seen: Mapped[datetime] = mapped_column(UtcDateTime)
+    permalink: Mapped[str] = mapped_column(String)
+    code_revision: Mapped[str] = mapped_column(String)
+    raw_sha256: Mapped[str] = mapped_column(String)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(UtcDateTime)
+    status: Mapped[str] = mapped_column(String, index=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    last_attempt_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
+    delivered_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
+    last_error: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
 def load_discovery_observations(*, include_baseline: bool = False) -> list[dict[str, Any]]:
     query = select(DiscoveryObservationRow)
     if not include_baseline:
@@ -642,11 +664,29 @@ def load_discovery_observations(*, include_baseline: bool = False) -> list[dict[
                 "baseline": r.baseline,
                 "first_seen": r.first_seen.isoformat(),
                 "novelty": "unconfirmed",
-                "delivery": "blocked",
+                "news_event_delivery": "blocked",
                 "evidence": r.evidence,
             }
             for r in session.scalars(query)
         ]
+
+        keys = [r["source"] + ":" + r["external_id"] for r in rows]
+        delivery_by_key = (
+            {
+                key: status
+                for key, status in session.execute(
+                    select(
+                        DiscoveryDeliveryRow.observation_key,
+                        DiscoveryDeliveryRow.status,
+                    ).where(DiscoveryDeliveryRow.observation_key.in_(keys))
+                )
+            }
+            if keys
+            else {}
+        )
+        for row in rows:
+            key = row["source"] + ":" + row["external_id"]
+            row["community_lead_outbox_status"] = delivery_by_key.get(key, "none")
 
         related: dict[str, list[str]] = {}
         for row in rows:

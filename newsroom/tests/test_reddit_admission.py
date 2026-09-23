@@ -59,7 +59,7 @@ def test_baseline_restart_absence_and_reordering(isolated: None) -> None:
     assert collect(source, get=get_page(("a2", "a1")))["new_observations"] == 1
     rows = db.load_discovery_observations()
     assert len(rows) == 1 and rows[0]["classification"] == "giveaway_claim_unverified"
-    assert rows[0]["delivery"] == "blocked"
+    assert rows[0]["news_event_delivery"] == "blocked"
     collect(source, get=get_page(("a2",)))
     assert collect(source, get=get_page(("a1", "a2")))["new_observations"] == 0
     assert len(db.load_discovery_observations(include_baseline=True)) == 2
@@ -206,7 +206,7 @@ def test_new_evidence_uses_discovery_v2_and_leaves_intel_policy(isolated: None) 
     }
     visible = db.load_discovery_observations(include_baseline=True)
     assert visible
-    assert all(row["delivery"] == "blocked" for row in visible)
+    assert all(row["news_event_delivery"] == "blocked" for row in visible)
     assert db.load_all_events() == []
 
 
@@ -249,6 +249,8 @@ def test_manual_dispatch_and_delivery_block(
     )
     assert summary["discovery"]["reddit_free_game_findings"]["baseline"]
     assert summary["new"] == 0
+    assert api_discovery()["news_event_delivery"] == "blocked"
+    assert "delivery" not in api_discovery()
     assert api_discovery()["observations"] == []
     assert "Community reports are unverified" in discovery_page()
     assert len(api_discovery(True)["observations"]) == 1
@@ -372,7 +374,7 @@ def test_intel_baseline_and_rumour_view(isolated: None) -> None:
     assert len(rows) == 1
     assert rows[0]["classification"] == "game_rumour_unverified"
     assert rows[0]["source"] == "reddit_gaming_leaks"
-    assert rows[0]["delivery"] == "blocked"
+    assert rows[0]["news_event_delivery"] == "blocked"
     assert db.load_all_events() == []
 
 
@@ -414,6 +416,8 @@ def test_intel_flag_does_not_enable_freegamefindings(
     )
     assert "reddit_free_game_findings" not in summary["discovery"]
     assert summary["discovery"]["reddit_gaming_leaks"]["baseline"]
+    assert summary["discovery"]["reddit_gaming_leaks"]["news_event_delivery"] == "blocked"
+    assert summary["discovery"]["reddit_gaming_leaks"]["community_lead_delivery"] == "disabled"
     assert summary["new"] == 0
     assert db.load_all_events() == []
     assert "unverified rumours, not free-game" in discovery_page(include_baseline=True)

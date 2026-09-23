@@ -10,7 +10,21 @@ from typing import Any
 from sqlalchemy import select
 
 from newsroom import database as db
+from newsroom import discovery_delivery
+from newsroom.config import settings
 from newsroom.sources import reddit
+
+
+def delivery_planes(source: str) -> dict[str, str]:
+    """Return the configured authority for each Reddit discovery delivery plane."""
+    return {
+        "news_event_delivery": "blocked",
+        "community_lead_delivery": (
+            "authorized"
+            if source == discovery_delivery.FGF_SOURCE and settings.enable_reddit_fgf_delivery
+            else "disabled"
+        ),
+    }
 
 
 def collect(
@@ -22,10 +36,11 @@ def collect(
 ) -> dict[str, Any]:
     if source not in reddit.SOURCES:
         raise ValueError("Unknown discovery source")
+    planes = delivery_planes(source)
     now = datetime.now(UTC)
     if not persist:
         posts = reddit.fetch(source, get)
-        return {"observed": len(posts), "delivery": "blocked", "persisted": False}
+        return {"observed": len(posts), "new_intents": 0, "persisted": False, **planes}
     with db.session_scope() as session:
         prior = session.scalar(
             select(db.DiscoveryRunRow.id)
@@ -37,14 +52,16 @@ def collect(
             source=source,
             started_at=now,
             baseline=baseline,
-            evidence={"code_revision": code_revision, "delivery": "blocked"},
+            evidence={"code_revision": code_revision, "new_intents": 0, **planes},
         )
         session.add(run)
         session.flush()
         run_id = run.id
+    committed_intents = 0
     try:
         posts = reddit.fetch(source, get)
         new = 0
+        new_intents = 0
         with db.session_scope() as session:
             for post in posts:
                 key = source + ":" + post.external_id
@@ -62,13 +79,14 @@ def collect(
                     "classification_policy": policy,
                 }
                 if row is None:
+                    classification = reddit.classify(post)
                     row = db.DiscoveryObservationRow(
                         key=key,
                         source=source,
                         external_id=post.external_id,
                         title=post.title,
                         url=post.permalink,
-                        classification=reddit.classify(post),
+                        classification=classification,
                         baseline=baseline,
                         first_seen=now,
                         last_seen=now,
@@ -76,6 +94,32 @@ def collect(
                     )
                     session.add(row)
                     new += 1
+                    if (
+                        planes["community_lead_delivery"] == "authorized"
+                        and not baseline
+                        and classification == "giveaway_claim_unverified"
+                        and policy == discovery_delivery.FGF_POLICY
+                    ):
+                        session.add(
+                            db.DiscoveryDeliveryRow(
+                                observation_key=key,
+                                source=source,
+                                external_id=post.external_id,
+                                classification=classification,
+                                classification_policy=policy,
+                                first_seen=now,
+                                permalink=post.permalink,
+                                code_revision=code_revision,
+                                raw_sha256=evidence["raw_sha256"],
+                                payload=discovery_delivery.build_lead_payload(
+                                    post.title, post.permalink, now
+                                ),
+                                created_at=now,
+                                status="pending",
+                                attempts=0,
+                            )
+                        )
+                        new_intents += 1
                 else:
                     row.last_seen = now
                     if row.evidence[-1]["raw_sha256"] != evidence["raw_sha256"]:
@@ -89,17 +133,20 @@ def collect(
             saved_run.evidence = {
                 "observed": len(posts),
                 "new_observations": new,
+                "new_intents": new_intents,
                 "collection_health": "ok",
                 "persistence_health": "ok",
-                "delivery": "blocked",
+                **planes,
                 "code_revision": code_revision,
             }
+        committed_intents = new_intents
         db.record_source_result(source, ok=True, count=len(posts))
         return {
             "observed": len(posts),
             "new_observations": new,
+            "new_intents": new_intents,
             "baseline": baseline,
-            "delivery": "blocked",
+            **planes,
         }
     except Exception as exc:
         with db.session_scope() as session:
@@ -109,7 +156,8 @@ def collect(
             saved_run.finished_at = datetime.now(UTC)
             saved_run.evidence = {
                 "error": str(exc),
-                "delivery": "blocked",
+                "new_intents": committed_intents,
+                **planes,
                 "code_revision": code_revision,
             }
         db.record_source_result(source, ok=False, error=str(exc))
