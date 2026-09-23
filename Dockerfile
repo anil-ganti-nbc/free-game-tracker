@@ -28,6 +28,7 @@ COPY pyproject.toml README.md requirements.container.lock ./
 COPY newsroom ./newsroom
 COPY clank_reddit ./clank_reddit
 COPY scripts ./scripts
+RUN python /app/scripts/check_shell_bytes.py --root /app
 COPY alembic.ini ./alembic.ini
 COPY alembic ./alembic
 

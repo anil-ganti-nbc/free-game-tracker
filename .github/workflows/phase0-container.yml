@@ -10,17 +10,58 @@ permissions:
   contents: read
 
 jobs:
-  container:
-    name: build / container-smoke
-    runs-on: ubuntu-latest
+  windows-package:
+    name: package / Windows Git archive bytes
+    runs-on: windows-latest
     env:
       SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - name: Build without publishing
-        run: docker build --build-arg GIT_REVISION="$SOURCE_SHA" --tag "phase0-local:$SOURCE_SHA" .
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Verify Windows checkout and production Git archive
+        shell: pwsh
+        run: |
+          python scripts/check_shell_bytes.py --root . --revision "$env:SOURCE_SHA"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git -c core.autocrlf=true archive --format=tar.gz -o "$env:RUNNER_TEMP\policy-proof.tar.gz" "$env:SOURCE_SHA"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/check_shell_bytes.py --archive "$env:RUNNER_TEMP\policy-proof.tar.gz" --revision "$env:SOURCE_SHA"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git -c core.autocrlf=false archive --format=tar.gz -o "$env:RUNNER_TEMP\source.tar.gz" "$env:SOURCE_SHA"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/check_shell_bytes.py --archive "$env:RUNNER_TEMP\source.tar.gz" --revision "$env:SOURCE_SHA"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: windows-source-archive
+          path: ${{ runner.temp }}/source.tar.gz
+          if-no-files-found: error
+  container:
+    name: build / container-smoke
+    runs-on: ubuntu-latest
+    needs: windows-package
+    env:
+      SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: windows-source-archive
+          path: packaged
+      - name: Verify and extract production-equivalent archive
+        run: |
+          python scripts/check_shell_bytes.py --archive packaged/source.tar.gz --revision "$SOURCE_SHA"
+          mkdir source
+          tar -xzf packaged/source.tar.gz -C source
+          python source/scripts/check_shell_bytes.py --root source
+      - name: Build without publishing from packaged source
+        run: docker build --build-arg GIT_REVISION="$SOURCE_SHA" --tag "phase0-local:$SOURCE_SHA" source
       - name: Inspect built image
         run: |
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
@@ -30,6 +71,21 @@ jobs:
         run: |
           docker run --rm "phase0-local:$SOURCE_SHA" version
           docker run --rm "phase0-local:$SOURCE_SHA" identity | python -c 'import json, os, sys; identity = json.load(sys.stdin); assert identity["source_revision"] == os.environ["SOURCE_SHA"], identity; print(identity["source_revision"])'
+      - name: Initialise isolated database through declared entrypoint
+        run: |
+          mkdir isolated-data
+          chmod 777 isolated-data
+          docker run --rm --network none -v "$PWD/isolated-data:/app/data" "phase0-local:$SOURCE_SHA" init-db
+          docker run --rm --network none -v "$PWD/isolated-data:/app/data" "phase0-local:$SOURCE_SHA" health
+      - name: Reject a CRLF-corrupted Docker build context
+        run: |
+          cp -a source broken-source
+          python -c 'from pathlib import Path; p=Path("broken-source/scripts/entrypoint.sh"); b=p.read_bytes(); assert b"\r" not in b; p.write_bytes(b.replace(b"\n", b"\r\n"))'
+          if docker build --progress=plain --build-arg GIT_REVISION="$SOURCE_SHA" --tag "phase0-broken:$SOURCE_SHA" broken-source > broken-build.log 2>&1; then
+            echo "Corrupted context unexpectedly built"
+            exit 1
+          fi
+          grep 'CR bytes in production shell script' broken-build.log
       - name: Rehearse FGF outbox with temporary SQLite and fake Discord
         run: docker run --rm --network none --entrypoint python -w /tmp "phase0-local:$SOURCE_SHA" /app/scripts/smoke_fgf_outbox.py
       - name: Import installed clank_reddit from the built image
