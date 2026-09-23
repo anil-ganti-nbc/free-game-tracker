@@ -98,6 +98,7 @@ delivery accounting. Do not manually edit rows to manufacture a send.
 ## Future production activation — procedure only
 
 1. Review and merge the PR, then identify the accepted merge SHA.
+   Package and gate that exact SHA using [container source packaging](CONTAINER_PACKAGING.md).
 2. Take a SQLite-safe `sqlite3.Connection.backup()` of the production DB;
    verify backup SHA-256 and `PRAGMA integrity_check` on both files.
 3. Upgrade the additive `e103_fgf_delivery` migration and deploy an image

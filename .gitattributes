@@ -1,3 +1,6 @@
 
 # Stable bytes for the vendored transport SHA-256 manifest.
 clank_reddit/** text eol=lf
+
+# Shell entrypoints must retain Unix bytes in Windows checkouts and git archives.
+*.sh text eol=lf
