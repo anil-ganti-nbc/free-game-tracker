@@ -40,6 +40,20 @@ def rows() -> list[db.DiscoveryDeliveryRow]:
         return list(session.scalars(select(db.DiscoveryDeliveryRow)))
 
 
+def latest_run_evidence() -> dict[str, object]:
+    with db.session_scope() as session:
+        run = session.scalar(select(db.DiscoveryRunRow).order_by(db.DiscoveryRunRow.id.desc()))
+        assert run is not None
+        return run.evidence
+
+
+def assert_planes(result: dict[str, object], lead_authority: str, intents: int) -> None:
+    assert result["news_event_delivery"] == "blocked"
+    assert result["community_lead_delivery"] == lead_authority
+    assert result["new_intents"] == intents
+    assert "delivery" not in result
+
+
 def seed_new(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "enable_reddit_fgf_delivery", True)
     collect(leads.FGF_SOURCE, get=lambda _: page("baseline"))
@@ -53,12 +67,16 @@ def test_baseline_and_flag_off_never_backfill(
     collect(leads.FGF_SOURCE, get=lambda _: page("baseline"))
     assert rows() == []
     monkeypatch.setattr(settings, "enable_reddit_fgf_delivery", False)
-    collect(leads.FGF_SOURCE, get=lambda _: page("old", "baseline"))
+    off = collect(leads.FGF_SOURCE, get=lambda _: page("old", "baseline"))
+    assert_planes(off, "disabled", 0)
+    assert_planes(latest_run_evidence(), "disabled", 0)
     assert rows() == []
     monkeypatch.setattr(settings, "enable_reddit_fgf_delivery", True)
     collect(leads.FGF_SOURCE, get=lambda _: page("old", "baseline"))
     assert rows() == []
-    collect(leads.FGF_SOURCE, get=lambda _: page("new", "old", "baseline"))
+    enabled = collect(leads.FGF_SOURCE, get=lambda _: page("new", "old", "baseline"))
+    assert_planes(enabled, "authorized", 1)
+    assert_planes(latest_run_evidence(), "authorized", 1)
     assert [r.external_id for r in rows()] == ["t3_new"]
 
 
@@ -85,25 +103,34 @@ def test_negative_v1_intel_and_dry_run_suppressed(
 ) -> None:
     monkeypatch.setattr(settings, "enable_reddit_fgf_delivery", True)
     collect(leads.FGF_SOURCE, get=lambda _: page("base"))
-    collect(leads.FGF_SOURCE, get=lambda _: page("negative", "base", title="[PSA] Giveaway"))
-    collect(leads.FGF_SOURCE, get=lambda _: page("dry", "base"), persist=False)
+    negative = collect(
+        leads.FGF_SOURCE, get=lambda _: page("negative", "base", title="[PSA] Giveaway")
+    )
+    assert_planes(negative, "authorized", 0)
+    assert_planes(latest_run_evidence(), "authorized", 0)
+    dry = collect(leads.FGF_SOURCE, get=lambda _: page("dry", "base"), persist=False)
+    assert_planes(dry, "authorized", 0)
     assert rows() == []
     with db.session_scope() as session:
         old = session.get(db.DiscoveryObservationRow, "reddit_free_game_findings:t3_base")
         assert old is not None
         old.evidence = [{**old.evidence[0], "classification_policy": "fgt-reddit-discovery-v1"}]
     collect(leads.FGF_SOURCE, get=lambda _: page("base"))
-    collect(
+    intel = collect(
         "reddit_gaming_leaks",
         get=lambda _: (200, listing(community="GamingLeaksAndRumours", ids=("intelbase",))),
     )
-    collect(
+    assert_planes(intel, "disabled", 0)
+    assert_planes(latest_run_evidence(), "disabled", 0)
+    intel_new = collect(
         "reddit_gaming_leaks",
         get=lambda _: (
             200,
             listing(community="GamingLeaksAndRumours", ids=("intelnew", "intelbase")),
         ),
     )
+    assert_planes(intel_new, "disabled", 0)
+    assert_planes(latest_run_evidence(), "disabled", 0)
     assert rows() == []
 
 
@@ -128,7 +155,7 @@ def test_missing_webhook_no_notify_failure_and_success(
     assert rows()[0].status == "delivered" and rows()[0].attempts == 2
     assert rows()[0].delivered_at is not None
     visible = db.load_discovery_observations()
-    assert visible[0]["community_lead_delivery"] == "delivered"
+    assert visible[0]["community_lead_outbox_status"] == "delivered"
     db.reset_engine()
     assert (
         leads.drain_leads(send=send, webhook_url="https://discord.test/webhook")[
@@ -194,6 +221,7 @@ def test_no_notify_keeps_intent_and_no_discord(
     )
     assert result["reddit_leads_pending"] == 1
     assert result["reddit_leads_posted"] == 0
+    assert_planes(result["discovery"][leads.FGF_SOURCE], "authorized", 1)
     assert rows()[0].status == "pending"
 
 
@@ -213,6 +241,7 @@ def test_discord_failure_is_isolated_from_normal_run(
     assert result["reddit_leads_eligible"] == 1
     assert result["reddit_leads_failed"] == 1
     assert result["reddit_leads_pending"] == 1
+    assert_planes(result["discovery"][leads.FGF_SOURCE], "authorized", 1)
     assert result["discord_detected"] == 0
     assert rows()[0].status == "failed" and rows()[0].attempts == 1
 
@@ -269,11 +298,15 @@ def test_reddit_403_fails_closed_and_ordinary_run_survives(
     assert result["discovery"][leads.FGF_SOURCE]["error"] == (
         "Reddit HTTP 403; intake not completed"
     )
+    assert_planes(result["discovery"][leads.FGF_SOURCE], "authorized", 0)
+    assert result["reddit_leads_posted"] == 0
+    assert result["reddit_leads_failed"] == 0
     assert result["reddit_leads_pending"] == 0
     assert rows() == []
     with db.session_scope() as session:
         runs = list(session.scalars(select(db.DiscoveryRunRow)))
     assert len(runs) == 1 and runs[0].status == "failed"
+    assert_planes(runs[0].evidence, "authorized", 0)
     assert db.load_all_events() == []
 
 
@@ -312,7 +345,7 @@ def test_upgrade_preserves_history_without_backlog(
                 finished_at=now,
                 status="ok",
                 baseline=True,
-                evidence={"code_revision": "old"},
+                evidence={"code_revision": "old", "delivery": "blocked"},
             )
         )
         session.add(
@@ -332,12 +365,19 @@ def test_upgrade_preserves_history_without_backlog(
     command.upgrade(cfg, "head")
     with db.session_scope() as session:
         assert session.scalar(select(db.NewsEventRow.event_key)) == "epic:historical"
-        assert session.scalar(select(db.DiscoveryRunRow.source)) == leads.FGF_SOURCE
+        old_run = session.scalar(select(db.DiscoveryRunRow))
+        assert old_run is not None and old_run.source == leads.FGF_SOURCE
+        assert old_run.evidence == {"code_revision": "old", "delivery": "blocked"}
         old = session.get(db.DiscoveryObservationRow, "reddit_free_game_findings:t3_historical")
         assert old is not None
         assert old.evidence == evidence and old.classification == "non_game_or_unclassified"
         assert old.first_seen == now and old.baseline
         assert list(session.scalars(select(db.DiscoveryDeliveryRow))) == []
     collect(leads.FGF_SOURCE, get=lambda _: page("historical"))
+    assert_planes(latest_run_evidence(), "authorized", 0)
+    with db.session_scope() as session:
+        old_run = session.scalar(select(db.DiscoveryRunRow).order_by(db.DiscoveryRunRow.id))
+        assert old_run is not None
+        assert old_run.evidence == {"code_revision": "old", "delivery": "blocked"}
     assert rows() == []
     db.reset_engine()

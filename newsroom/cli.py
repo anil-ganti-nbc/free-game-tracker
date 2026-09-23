@@ -563,7 +563,7 @@ def run_pipeline(
     generated_at = datetime.now(UTC)
     discovery_results = {}
     if include_sources:
-        from newsroom.discovery import collect
+        from newsroom.discovery import collect, delivery_planes
 
         reddit_lanes: list[tuple[str, bool]] = [
             *((name, settings.enable_reddit_discovery) for name in DISCOVERY_SOURCES),
@@ -580,7 +580,11 @@ def run_pipeline(
                 )
             except Exception as exc:
                 logger.exception("Discovery source %s failed", name)
-                discovery_results[name] = {"error": str(exc), "delivery": "blocked"}
+                discovery_results[name] = {
+                    "error": str(exc),
+                    "new_intents": 0,
+                    **delivery_planes(name),
+                }
 
     if include_sources:
         current_events, successful_sources = _fetch_all_sources(selected)

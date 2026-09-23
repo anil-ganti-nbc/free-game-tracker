@@ -15,6 +15,18 @@ from newsroom.config import settings
 from newsroom.sources import reddit
 
 
+def delivery_planes(source: str) -> dict[str, str]:
+    """Return the configured authority for each Reddit discovery delivery plane."""
+    return {
+        "news_event_delivery": "blocked",
+        "community_lead_delivery": (
+            "authorized"
+            if source == discovery_delivery.FGF_SOURCE and settings.enable_reddit_fgf_delivery
+            else "disabled"
+        ),
+    }
+
+
 def collect(
     source: str,
     *,
@@ -24,10 +36,11 @@ def collect(
 ) -> dict[str, Any]:
     if source not in reddit.SOURCES:
         raise ValueError("Unknown discovery source")
+    planes = delivery_planes(source)
     now = datetime.now(UTC)
     if not persist:
         posts = reddit.fetch(source, get)
-        return {"observed": len(posts), "delivery": "blocked", "persisted": False}
+        return {"observed": len(posts), "new_intents": 0, "persisted": False, **planes}
     with db.session_scope() as session:
         prior = session.scalar(
             select(db.DiscoveryRunRow.id)
@@ -39,11 +52,12 @@ def collect(
             source=source,
             started_at=now,
             baseline=baseline,
-            evidence={"code_revision": code_revision, "delivery": "blocked"},
+            evidence={"code_revision": code_revision, "new_intents": 0, **planes},
         )
         session.add(run)
         session.flush()
         run_id = run.id
+    committed_intents = 0
     try:
         posts = reddit.fetch(source, get)
         new = 0
@@ -81,8 +95,7 @@ def collect(
                     session.add(row)
                     new += 1
                     if (
-                        settings.enable_reddit_fgf_delivery
-                        and source == discovery_delivery.FGF_SOURCE
+                        planes["community_lead_delivery"] == "authorized"
                         and not baseline
                         and classification == "giveaway_claim_unverified"
                         and policy == discovery_delivery.FGF_POLICY
@@ -123,16 +136,17 @@ def collect(
                 "new_intents": new_intents,
                 "collection_health": "ok",
                 "persistence_health": "ok",
-                "delivery": "blocked",
+                **planes,
                 "code_revision": code_revision,
             }
+        committed_intents = new_intents
         db.record_source_result(source, ok=True, count=len(posts))
         return {
             "observed": len(posts),
             "new_observations": new,
             "new_intents": new_intents,
             "baseline": baseline,
-            "delivery": "blocked",
+            **planes,
         }
     except Exception as exc:
         with db.session_scope() as session:
@@ -142,7 +156,8 @@ def collect(
             saved_run.finished_at = datetime.now(UTC)
             saved_run.evidence = {
                 "error": str(exc),
-                "delivery": "blocked",
+                "new_intents": committed_intents,
+                **planes,
                 "code_revision": code_revision,
             }
         db.record_source_result(source, ok=False, error=str(exc))

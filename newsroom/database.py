@@ -664,7 +664,7 @@ def load_discovery_observations(*, include_baseline: bool = False) -> list[dict[
                 "baseline": r.baseline,
                 "first_seen": r.first_seen.isoformat(),
                 "novelty": "unconfirmed",
-                "delivery": "blocked",
+                "news_event_delivery": "blocked",
                 "evidence": r.evidence,
             }
             for r in session.scalars(query)
@@ -686,7 +686,7 @@ def load_discovery_observations(*, include_baseline: bool = False) -> list[dict[
         )
         for row in rows:
             key = row["source"] + ":" + row["external_id"]
-            row["community_lead_delivery"] = delivery_by_key.get(key, "none")
+            row["community_lead_outbox_status"] = delivery_by_key.get(key, "none")
 
         related: dict[str, list[str]] = {}
         for row in rows:

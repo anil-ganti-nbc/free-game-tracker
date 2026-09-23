@@ -63,6 +63,21 @@ from game-promotion and subscription delivery. Discord failure does not stop
 ordinary FGT collection. `--no-notify` keeps authorised intents but does not
 drain them.
 
+Each new Reddit discovery run stores and returns `news_event_delivery: blocked`
+for the normal NewsEvent/confirmed-offer plane. It separately reports
+`community_lead_delivery: authorized` only when the FGF flag is on for
+FreeGameFindings; otherwise it reports `disabled`. GamingLeaks always reports
+`disabled`. `new_intents` counts durable intents created by that collection,
+independent of whether Discord was attempted or accepted. A failed Reddit
+fetch still records the configured authority and zero new intents, with its
+fetch error. The pipeline summary carries these fields in each `discovery`
+source result; `reddit_leads_*` and outbox status describe subsequent delivery
+outcomes. A dry run may report configured authority but creates no intent.
+The discovery API labels normal delivery `news_event_delivery` and exposes
+per-observation `community_lead_outbox_status`. Historical run evidence keeps
+its original fields; this telemetry correction needs no data rewrite or
+migration.
+
 ## Operator inspection
 
 Use read-only SQLite access to the selected environment's database. For

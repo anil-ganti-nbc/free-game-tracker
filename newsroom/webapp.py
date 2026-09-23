@@ -1245,7 +1245,7 @@ setInterval(() => { if(!RUNNING) load(); }, 30000);
 @app.get("/api/discovery")
 def api_discovery(include_baseline: bool = False) -> dict[str, Any]:
     from newsroom.database import load_discovery_observations
-    return {"delivery": "blocked", "delivery_scope": "direct offer delivery",
+    return {"news_event_delivery": "blocked",
             "novelty": "unconfirmed",
             "observations": load_discovery_observations(include_baseline=include_baseline)}
 
@@ -1265,7 +1265,7 @@ def discovery_page(include_baseline: bool = False) -> str:
         cards.append(f'<article class="panel"><div class="panel-body"><h2 class="panel-title"><a href="{escape(row["url"], quote=True)}">'
                      f'{escape(row["title"])}</a></h2><p>{escape(lane)} · {escape(row["classification"])} · '
                      f'{"Baseline" if row["baseline"] else "Observation; novelty unconfirmed"}'
-                     f' · Community lead delivery: {escape(row["community_lead_delivery"])}'
+                     f' · Community lead outbox: {escape(row["community_lead_outbox_status"])}'
                      f'</p>{provenance}<p>Related observations: '
                      f'{escape(chr(44).join(row["related_observation_ids"])) or "none in this view"}'
                      f'</p></div></article>')
