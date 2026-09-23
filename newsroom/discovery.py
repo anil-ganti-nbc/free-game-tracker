@@ -10,6 +10,8 @@ from typing import Any
 from sqlalchemy import select
 
 from newsroom import database as db
+from newsroom import discovery_delivery
+from newsroom.config import settings
 from newsroom.sources import reddit
 
 
@@ -45,6 +47,7 @@ def collect(
     try:
         posts = reddit.fetch(source, get)
         new = 0
+        new_intents = 0
         with db.session_scope() as session:
             for post in posts:
                 key = source + ":" + post.external_id
@@ -62,13 +65,14 @@ def collect(
                     "classification_policy": policy,
                 }
                 if row is None:
+                    classification = reddit.classify(post)
                     row = db.DiscoveryObservationRow(
                         key=key,
                         source=source,
                         external_id=post.external_id,
                         title=post.title,
                         url=post.permalink,
-                        classification=reddit.classify(post),
+                        classification=classification,
                         baseline=baseline,
                         first_seen=now,
                         last_seen=now,
@@ -76,6 +80,33 @@ def collect(
                     )
                     session.add(row)
                     new += 1
+                    if (
+                        settings.enable_reddit_fgf_delivery
+                        and source == discovery_delivery.FGF_SOURCE
+                        and not baseline
+                        and classification == "giveaway_claim_unverified"
+                        and policy == discovery_delivery.FGF_POLICY
+                    ):
+                        session.add(
+                            db.DiscoveryDeliveryRow(
+                                observation_key=key,
+                                source=source,
+                                external_id=post.external_id,
+                                classification=classification,
+                                classification_policy=policy,
+                                first_seen=now,
+                                permalink=post.permalink,
+                                code_revision=code_revision,
+                                raw_sha256=evidence["raw_sha256"],
+                                payload=discovery_delivery.build_lead_payload(
+                                    post.title, post.permalink, now
+                                ),
+                                created_at=now,
+                                status="pending",
+                                attempts=0,
+                            )
+                        )
+                        new_intents += 1
                 else:
                     row.last_seen = now
                     if row.evidence[-1]["raw_sha256"] != evidence["raw_sha256"]:
@@ -89,6 +120,7 @@ def collect(
             saved_run.evidence = {
                 "observed": len(posts),
                 "new_observations": new,
+                "new_intents": new_intents,
                 "collection_health": "ok",
                 "persistence_health": "ok",
                 "delivery": "blocked",
@@ -98,6 +130,7 @@ def collect(
         return {
             "observed": len(posts),
             "new_observations": new,
+            "new_intents": new_intents,
             "baseline": baseline,
             "delivery": "blocked",
         }

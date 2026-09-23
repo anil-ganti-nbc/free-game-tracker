@@ -16,11 +16,15 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Build without publishing
-        run: docker build --tag phase0-local:${{ github.sha }} .
+        run: docker build --build-arg GIT_REVISION=${{ github.sha }} --tag phase0-local:${{ github.sha }} .
       - name: Inspect built image
-        run: docker image inspect phase0-local:${{ github.sha }} --format '{{.Id}}'
+        run: |
+          docker image inspect phase0-local:${{ github.sha }} --format '{{.Id}}'
+          test "$(docker image inspect phase0-local:${{ github.sha }} --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "${{ github.sha }}"
       - name: Execute built image
         run: docker run --rm phase0-local:${{ github.sha }} version
+      - name: Rehearse FGF outbox with temporary SQLite and fake Discord
+        run: docker run --rm --network none --entrypoint python -w /tmp phase0-local:${{ github.sha }} /app/scripts/smoke_fgf_outbox.py
       - name: Import installed clank_reddit from the built image
         run: |
           docker run --rm --entrypoint python -w /tmp "phase0-local:${{ github.sha }}" -c 'import clank_reddit, newsroom; path = clank_reddit.__file__; assert path.startswith("/usr/local/lib/python3.12/site-packages/clank_reddit/"), path; print(path); print(newsroom.__file__)'

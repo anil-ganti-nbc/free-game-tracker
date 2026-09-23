@@ -17,7 +17,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from newsroom import __version__, run_lock
+from newsroom import __version__, discovery_delivery, run_lock
 from newsroom.compare import DEFAULT_ENDING_SOON_HOURS, RunDiff, compare, deduplicate
 from newsroom.config import settings
 from newsroom.database import (
@@ -607,6 +607,18 @@ def run_pipeline(
     breakouts_new = _run_breakouts(generated_at, persist, do_notify) if include_breakouts else 0
     deals_new = _run_deals(persist, do_notify) if include_deals else 0
 
+    fgf_result = discovery_results.get(discovery_delivery.FGF_SOURCE, {})
+    lead_delivery = discovery_delivery.account_leads(
+        detected=int(fgf_result.get("new_observations", 0)),
+        eligible=int(fgf_result.get("new_intents", 0)),
+        drain=(
+            persist
+            and do_notify
+            and include_sources
+            and (selected is None or discovery_delivery.FGF_SOURCE in selected)
+        ),
+    )
+
     stale = _stale_sources(load_source_health(), settings.source_stale_hours)
     return {
         "new": len(diff.new),
@@ -622,6 +634,7 @@ def run_pipeline(
         "sources_ok": sorted(successful_sources),
         "discovery": discovery_results,
         **delivery,
+        **lead_delivery,
     }
 
 

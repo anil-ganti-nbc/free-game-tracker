@@ -1245,13 +1245,15 @@ setInterval(() => { if(!RUNNING) load(); }, 30000);
 @app.get("/api/discovery")
 def api_discovery(include_baseline: bool = False) -> dict[str, Any]:
     from newsroom.database import load_discovery_observations
-    return {"delivery": "blocked", "novelty": "unconfirmed",
+    return {"delivery": "blocked", "delivery_scope": "direct offer delivery",
+            "novelty": "unconfirmed",
             "observations": load_discovery_observations(include_baseline=include_baseline)}
 
 
 @app.get("/discovery", response_class=HTMLResponse)
 def discovery_page(include_baseline: bool = False) -> str:
     from html import escape
+
     from newsroom.database import load_discovery_observations
     rows = load_discovery_observations(include_baseline=include_baseline)
     cards = []
@@ -1263,6 +1265,7 @@ def discovery_page(include_baseline: bool = False) -> str:
         cards.append(f'<article class="panel"><div class="panel-body"><h2 class="panel-title"><a href="{escape(row["url"], quote=True)}">'
                      f'{escape(row["title"])}</a></h2><p>{escape(lane)} · {escape(row["classification"])} · '
                      f'{"Baseline" if row["baseline"] else "Observation; novelty unconfirmed"}'
+                     f' · Community lead delivery: {escape(row["community_lead_delivery"])}'
                      f'</p>{provenance}<p>Related observations: '
                      f'{escape(chr(44).join(row["related_observation_ids"])) or "none in this view"}'
                      f'</p></div></article>')
@@ -1270,7 +1273,8 @@ def discovery_page(include_baseline: bool = False) -> str:
             '<style>' + _PAGE.split('<style>', 1)[1].split('</style>', 1)[0] + '</style>'
             '<main class="main"><div class="wrap"><a href="/">Back to collector</a>'
             '<h1 class="page-title">Discovery evidence</h1>'
-            '<p>Community reports are unverified. Delivery is blocked. Reddit publication time '
+            '<p>Community reports are unverified. Direct offer delivery is blocked. '
+            'FGF editorial leads require separate delivery authority. Reddit publication time '
             'does not establish a game announcement or a live giveaway. INTEL observations are '
             'unverified rumours, not free-game or promotion events.</p>'
             '<p><a href="/discovery">Exclude baseline</a> · '
