@@ -13,18 +13,25 @@ jobs:
   container:
     name: build / container-smoke
     runs-on: ubuntu-latest
+    env:
+      SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Build without publishing
-        run: docker build --build-arg GIT_REVISION=${{ github.sha }} --tag phase0-local:${{ github.sha }} .
+        run: docker build --build-arg GIT_REVISION="$SOURCE_SHA" --tag "phase0-local:$SOURCE_SHA" .
       - name: Inspect built image
         run: |
-          docker image inspect phase0-local:${{ github.sha }} --format '{{.Id}}'
-          test "$(docker image inspect phase0-local:${{ github.sha }} --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "${{ github.sha }}"
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          docker image inspect "phase0-local:$SOURCE_SHA" --format '{{.Id}}'
+          test "$(docker image inspect "phase0-local:$SOURCE_SHA" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "$SOURCE_SHA"
       - name: Execute built image
-        run: docker run --rm phase0-local:${{ github.sha }} version
+        run: |
+          docker run --rm "phase0-local:$SOURCE_SHA" version
+          docker run --rm "phase0-local:$SOURCE_SHA" identity | python -c 'import json, os, sys; identity = json.load(sys.stdin); assert identity["source_revision"] == os.environ["SOURCE_SHA"], identity; print(identity["source_revision"])'
       - name: Rehearse FGF outbox with temporary SQLite and fake Discord
-        run: docker run --rm --network none --entrypoint python -w /tmp phase0-local:${{ github.sha }} /app/scripts/smoke_fgf_outbox.py
+        run: docker run --rm --network none --entrypoint python -w /tmp "phase0-local:$SOURCE_SHA" /app/scripts/smoke_fgf_outbox.py
       - name: Import installed clank_reddit from the built image
         run: |
-          docker run --rm --entrypoint python -w /tmp "phase0-local:${{ github.sha }}" -c 'import clank_reddit, newsroom; path = clank_reddit.__file__; assert path.startswith("/usr/local/lib/python3.12/site-packages/clank_reddit/"), path; print(path); print(newsroom.__file__)'
+          docker run --rm --entrypoint python -w /tmp "phase0-local:$SOURCE_SHA" -c 'import clank_reddit, newsroom; path = clank_reddit.__file__; assert path.startswith("/usr/local/lib/python3.12/site-packages/clank_reddit/"), path; print(path); print(newsroom.__file__)'
