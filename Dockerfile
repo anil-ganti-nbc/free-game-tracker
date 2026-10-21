@@ -1,6 +1,6 @@
 # Free Game Tracker (newsroom) — Linux AMD64 production image.
 # Immutable release artifact: built from a reviewed commit, never edited in place.
-FROM python:3.12-slim-bookworm@sha256:a116514e19457bcb7af7efe9c3dd0b9b71e85b317694e7882a1c52aa15a78134
+FROM python:3.12-slim-bookworm@sha256:57d96f71de145a98e7ceca18ee4ade77bba4103a33a72dfaea026b23625c6bf0
 
 # Full Git SHA of the source this image was built from. Must be passed at
 # build time (e.g. `--build-arg GIT_REVISION=$(git rev-parse HEAD)`).
