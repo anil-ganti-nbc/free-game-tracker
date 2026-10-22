@@ -407,7 +407,14 @@ xml_malformed_mixed = """<?xml version="1.0" encoding="UTF-8"?>
 
 
 def test_mixed_malformed_pubdates() -> None:
-    with patch("newsroom.sources.playstation_plus.fetch_text", return_value=xml_malformed_mixed):
+    # The valid item is dated 10 June 2026. Pin "now" the day after so it stays
+    # inside the 90-day horizon; Game B is still dropped only as malformed.
+    with (
+        patch("newsroom.sources.playstation_plus.fetch_text", return_value=xml_malformed_mixed),
+        patch("newsroom.sources.playstation_plus.datetime") as mock_dt,
+    ):
+        mock_dt.now.return_value = datetime(2026, 6, 11, tzinfo=UTC)
+        mock_dt.side_effect = lambda *a, **kw: datetime(*a, **kw)
         events = fetch_events()
         titles = [e.title for e in events]
         assert "Game A" in titles
